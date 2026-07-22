@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- paper boat, slight isometric tilt -->
+  <g transform="rotate(-8 32 32)">
+    <!-- sail -->
+    <path d="M33 10 L33 34 L14 34 Z" fill="#FF9B9B"/>
+    <path d="M35 14 L35 34 L48 34 Z" fill="#FFB37E"/>
+    <!-- mast -->
+    <rect x="31.6" y="8" width="2.8" height="28" rx="1.4" fill="#4A4470"/>
+    <!-- hull -->
+    <path d="M8 38 L56 38 L46 52 L18 52 Z" fill="#FFF9EF" stroke="#4A4470" stroke-width="2.4" stroke-linejoin="round"/>
+    <path d="M8 38 L56 38 L52 44 L12 44 Z" fill="#F6E3C2" opacity="0.8"/>
+    <!-- wave -->
+    <path d="M6 57 Q 14 52 22 57 T 38 57 T 54 57" fill="none" stroke="#7EC8E3" stroke-width="3" stroke-linecap="round"/>
+  </g>
+</svg>

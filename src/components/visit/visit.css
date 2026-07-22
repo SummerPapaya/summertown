@@ -1,0 +1,147 @@
+/* ============================================================
+   Visit page scoped effects (only imported by src/pages/Visit.tsx)
+   Loop classes get the global `.ambient` class so the existing
+   prefers-reduced-motion rule in index.css disables them.
+   ============================================================ */
+
+/* ferry bob — y:±10px rotate:±2° (3.8s sine-ish) */
+@keyframes vt-ferry-bob {
+  0%,
+  100% {
+    transform: translateY(-10px) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(10px) rotate(2deg);
+  }
+}
+
+/* wake ellipses expanding + fading (2.4s, staggered ×3) */
+@keyframes vt-wake {
+  0% {
+    transform: scale(0.45);
+    opacity: 0.65;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+/* a gull crosses the hero every 11s */
+@keyframes vt-gull-cross {
+  0% {
+    transform: translate3d(-10vw, 0, 0);
+    opacity: 0;
+  }
+  5% {
+    opacity: 0.85;
+  }
+  30% {
+    transform: translate3d(24vw, -3vh, 0);
+  }
+  55% {
+    transform: translate3d(56vw, 2vh, 0);
+  }
+  80% {
+    transform: translate3d(88vw, -2vh, 0);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate3d(115vw, 0, 0);
+    opacity: 0;
+  }
+}
+
+/* two-speed cloud drift across the hero sky */
+@keyframes vt-cloud-drift {
+  from {
+    transform: translate3d(-30vw, 0, 0);
+  }
+  to {
+    transform: translate3d(130vw, 0, 0);
+  }
+}
+
+/* timetable row hover ripple — background gradient sweep 0.5s */
+.vt-row {
+  position: relative;
+  overflow: hidden;
+}
+.vt-row::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 25%,
+    rgba(255, 255, 255, 0.6) 50%,
+    transparent 75%
+  );
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+.vt-row:hover::after,
+.vt-row:focus-visible::after {
+  transform: translateX(120%);
+  transition: transform 0.5s ease;
+}
+
+/* mini ferry doodle puts-puts 8px while its row is hovered */
+@keyframes vt-putt {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(2px);
+  }
+  50% {
+    transform: translateX(5px) rotate(-2deg);
+  }
+  75% {
+    transform: translateX(8px);
+  }
+}
+.vt-row:hover .vt-mini-ferry,
+.vt-row:focus-visible .vt-mini-ferry {
+  animation: vt-putt 0.45s ease-in-out infinite;
+}
+
+/* etiquette doodle wiggle — rotate ±8° (0.5s elastic-ish) on card hover */
+@keyframes vt-wiggle {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  30% {
+    transform: rotate(-8deg) scale(1.08);
+  }
+  60% {
+    transform: rotate(8deg) scale(1.08);
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+}
+.vt-rule-card:hover .vt-rule-icon,
+.vt-rule-card:focus-visible .vt-rule-icon {
+  animation: vt-wiggle 0.5s cubic-bezier(0.36, 1.6, 0.5, 1);
+}
+
+/* tiny sparkle pop when a packing item is checked */
+@keyframes vt-sparkle-pop {
+  0% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  35% {
+    transform: scale(1.25) rotate(18deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.5) rotate(40deg) translateY(-10px);
+    opacity: 0;
+  }
+}
+.vt-sparkle-pop {
+  animation: vt-sparkle-pop 0.6s ease-out forwards;
+}

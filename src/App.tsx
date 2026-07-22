@@ -1,0 +1,27 @@
+import { Routes, Route } from 'react-router';
+import { Toaster } from '@/components/ui/sonner';
+import { TownProvider } from '@/lib/town';
+import Layout from '@/components/Layout';
+import SparkleTrail from '@/components/SparkleTrail';
+import Home from '@/pages/Home';
+import WindbellIsle from '@/pages/WindbellIsle';
+import Journal from '@/pages/Journal';
+import Visit from '@/pages/Visit';
+
+export default function App() {
+  return (
+    <TownProvider>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/windbell-isle" element={<WindbellIsle />} />
+          <Route path="/journal" element={<Journal />} />
+          <Route path="/visit" element={<Visit />} />
+          <Route path="*" element={<Home />} />
+        </Routes>
+      </Layout>
+      <Toaster position="bottom-center" />
+      <SparkleTrail />
+    </TownProvider>
+  );
+}
