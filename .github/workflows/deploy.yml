@@ -29,7 +29,6 @@ jobs:
 
       - name: Install dependencies (bypass corrupted lock)
         run: |
-          rm -f package-lock.json
           npm install --registry https://registry.npmjs.org/
 
       - name: Build
