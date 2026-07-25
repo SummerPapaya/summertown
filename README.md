@@ -111,4 +111,8 @@ Deployed to GitHub Pages from `main` via `.github/workflows/deploy.yml` (custom 
 
 - Best experienced with a mouse or trackpad (custom cursor + map gestures).
 - Sound can be toggled from the navbar; respect your own volume.
-- Map art, landmark cutouts, and scenes are original project assets — please don’t reuse them without permission.
+
+### License
+
+- **Source code** is released under the [MIT License](./LICENSE).
+- **Visual assets** under `public/` (map art, landmarks, scenes, logos, cursors) are **not** MIT-licensed. Many were created with AI assistance; please do not reuse them as standalone assets or project branding without permission. See [NOTICE](./NOTICE).
