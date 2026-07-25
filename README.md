@@ -111,4 +111,10 @@ Deployed to GitHub Pages from `main` via `.github/workflows/deploy.yml` (custom 
 
 - Best experienced with a mouse or trackpad (custom cursor + map gestures).
 - Sound can be toggled from the navbar; respect your own volume.
-- Map art, landmark cutouts, and scenes are original project assets — please don’t reuse them without permission.
+
+### License
+
+- **Source code** is released under the [MIT License](./LICENSE).
+- **Original artwork and brand assets** (map art, landmark cutouts, scenes, logos, cursors, and related imagery under `public/`) are **© 2026 SummerPapaya. All rights reserved.** See [NOTICE](./NOTICE).
+
+Please do not reuse the artwork without permission.

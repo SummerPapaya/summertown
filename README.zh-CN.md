@@ -111,4 +111,10 @@ React 19 · TypeScript · Vite · Tailwind CSS · Framer Motion · GSAP · Lenis
 
 - 更适合鼠标或触控板（自定义光标 + 地图手势）。
 - 声音可在导航栏开关；请自行控制音量。
-- 地图、地标切图与场景图均为本项目原创素材，未经许可请勿转用。
+
+### 许可
+
+- **源代码** 采用 [MIT License](./LICENSE) 发布。
+- **原创美术与品牌素材**（`public/` 下的地图、地标切图、场景图、logo、光标及相关图像）为 **© 2026 SummerPapaya，保留所有权利**。详见 [NOTICE](./NOTICE)。
+
+未经许可，请勿转用上述美术素材。

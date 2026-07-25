@@ -1,0 +1,28 @@
+Summer Town — Asset Copyright Notice
+====================================
+
+Copyright (c) 2026 SummerPapaya. All rights reserved.
+
+The following materials are original project assets and are not covered by the
+MIT License in `LICENSE`:
+
+- Map base art and extensions (for example `public/map-base.png`,
+  `public/map-base-ext.png`)
+- Landmark cutouts and props (for example `public/b-*.png`, `public/i-*.png`,
+  `public/prop-*.png`, `public/ferry.png`)
+- Scene / detail illustrations (for example `public/scene-*.png`,
+  `public/isle-*.png`)
+- Brand and UI artwork (for example `public/logo.svg`, `public/cursor*.png`,
+  `public/cursor-boat.svg`)
+- Any other original illustration, texture, or brand mark distributed with
+  this project
+
+You may view these assets as they appear in the live site and repository for
+personal, non-commercial reference.
+
+You may NOT copy, redistribute, modify, train models on, or reuse these assets
+in other projects — commercial or non-commercial — without prior written
+permission from the copyright holder.
+
+For permission requests, open an issue in this repository or contact the
+maintainer via GitHub.
