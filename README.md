@@ -115,6 +115,4 @@ Deployed to GitHub Pages from `main` via `.github/workflows/deploy.yml` (custom 
 ### License
 
 - **Source code** is released under the [MIT License](./LICENSE).
-- **Original artwork and brand assets** (map art, landmark cutouts, scenes, logos, cursors, and related imagery under `public/`) are **© 2026 SummerPapaya. All rights reserved.** See [NOTICE](./NOTICE).
-
-Please do not reuse the artwork without permission.
+- **Visual assets** under `public/` (map art, landmarks, scenes, logos, cursors) are **not** MIT-licensed. Many were created with AI assistance; please do not reuse them as standalone assets or project branding without permission. See [NOTICE](./NOTICE).

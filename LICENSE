@@ -25,8 +25,7 @@ SOFTWARE.
 IMPORTANT: The MIT License above applies only to the source code and
 documentation in this repository.
 
-Original visual and audio assets — including but not limited to files under
-`public/` such as map art, landmark cutouts, scene images, logos, cursors, and
-related brand imagery — are NOT licensed under MIT.
-
-See `NOTICE` for the asset copyright terms.
+Visual assets under `public/` (map art, landmark cutouts, scenes, logos,
+cursors, and related imagery) are NOT licensed under MIT. Many were produced
+with AI assistance; see `NOTICE` for the project's asset terms and reuse
+request.

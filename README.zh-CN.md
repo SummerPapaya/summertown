@@ -115,6 +115,4 @@ React 19 · TypeScript · Vite · Tailwind CSS · Framer Motion · GSAP · Lenis
 ### 许可
 
 - **源代码** 采用 [MIT License](./LICENSE) 发布。
-- **原创美术与品牌素材**（`public/` 下的地图、地标切图、场景图、logo、光标及相关图像）为 **© 2026 SummerPapaya，保留所有权利**。详见 [NOTICE](./NOTICE)。
-
-未经许可，请勿转用上述美术素材。
+- **`public/` 下的视觉素材**（地图、地标、场景、logo、光标等）**不适用** MIT。其中多数借助 AI 生成；请勿在未获许可的情况下，将其作为独立素材或其他项目品牌使用。详见 [NOTICE](./NOTICE)。
