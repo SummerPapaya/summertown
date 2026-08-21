@@ -17,15 +17,15 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: npm
-      - run: npm install
-      - run: npm run build
-      # SPA fallback: GitHub Pages serves 404.html for unknown paths,
-      # so client-side routes like /windbell-isle still load the app.
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund || npm install --legacy-peer-deps --force
+      - name: Build
+        run: npm run build
+      # SPA fallback: GitHub Pages serves 404.html for unknown paths
       - run: cp dist/index.html dist/404.html
       - uses: actions/upload-pages-artifact@v3
         with:
