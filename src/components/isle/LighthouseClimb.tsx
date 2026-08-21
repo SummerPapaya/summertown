@@ -3,14 +3,15 @@ import type { RefObject } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { BookOpen, Flashlight, Footprints } from 'lucide-react';
+import { useLanguage } from '@/lib/i18n';
 import { usePrefersReducedMotion } from './hooks';
 
 gsap.registerPlugin(ScrollTrigger);
 
 const FACTS = [
-  { icon: Footprints, label: '137 steps' },
-  { icon: BookOpen, label: "Poem: keeper's choice" },
-  { icon: Flashlight, label: 'Range: as far as needed' },
+  { icon: Footprints, labelKey: 'isle.lighthouse.facts.0' },
+  { icon: BookOpen, labelKey: 'isle.lighthouse.facts.1' },
+  { icon: Flashlight, labelKey: 'isle.lighthouse.facts.2' },
 ];
 
 /* winding climb path in the image's own coordinate space (1024×1536) */
@@ -37,6 +38,7 @@ export default function LighthouseClimb({
   sectionRef: RefObject<HTMLElement | null>;
 }) {
   const reduced = usePrefersReducedMotion();
+  const { t } = useLanguage();
   const sceneRef = useRef<HTMLDivElement>(null);
   const imgWrapRef = useRef<HTMLDivElement>(null);
   const maskPathRef = useRef<SVGPathElement>(null);
@@ -157,35 +159,33 @@ export default function LighthouseClimb({
 
   return (
     <>
-      <section ref={sectionRef} aria-label="The lighthouse climb" className="relative">
+      <section ref={sectionRef} aria-label={t('isle.lighthouse.sectionAria')} className="relative">
         <div ref={sceneRef} className="relative flex h-[100dvh] items-center overflow-hidden py-6">
           <div className="mx-auto grid w-full max-w-[1200px] items-center gap-8 px-6 lg:grid-cols-[40fr_60fr]">
             {/* text stack */}
             <div>
               <div ref={textRef}>
                 <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-butter">
-                  the lighthouse · sunset point
+                  {t('isle.lighthouse.kicker')}
                 </p>
                 <h2
                   className="mt-3 font-display text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[1.05] text-cream"
                   style={{ textShadow: '0 3px 0 rgba(54,48,92,0.5)' }}
                 >
-                  The light has never missed a night.
+                  {t('isle.lighthouse.title')}
                 </h2>
                 <p className="mt-4 max-w-[46ch] text-[clamp(1rem,1.15vw,1.15rem)] font-semibold leading-[1.65] text-lilac">
-                  Built in 1911 from shipwreck timber and good intentions. The keeper winds
-                  the clockwork at dusk, reads one poem to the lamp, and lets the spiral
-                  stairs argue with your knees.
+                  {t('isle.lighthouse.body')}
                 </p>
               </div>
               <ul ref={factsRef} className="mt-6 hidden flex-col items-start gap-2.5 lg:flex">
                 {FACTS.map((f) => (
                   <li
-                    key={f.label}
+                    key={f.labelKey}
                     className="flex items-center gap-3 rounded-full border-2 border-white/90 bg-paper/95 px-4 py-2 font-extrabold text-ink shadow-pop"
                   >
                     <f.icon className="h-4 w-4 text-coral" aria-hidden />
-                    {f.label}
+                    {t(f.labelKey)}
                   </li>
                 ))}
               </ul>
@@ -199,7 +199,7 @@ export default function LighthouseClimb({
               <div ref={imgWrapRef} className="absolute inset-x-0 top-0 will-change-transform">
                 <img
                   src="/isle-lighthouse-scene.png"
-                  alt="The Windbell lighthouse with its impossible spiral stair and keeper's garden"
+                  alt={t('isle.lighthouse.sceneAlt')}
                   loading="lazy"
                   className="block h-auto w-full"
                 />
@@ -237,14 +237,14 @@ export default function LighthouseClimb({
 
                 {/* step-number tags */}
                 <div ref={tagsRef} aria-hidden>
-                  {STEP_TAGS.map((t) => (
+                  {STEP_TAGS.map((tag) => (
                     <div
-                      key={t.n}
+                      key={tag.n}
                       className={`absolute ${reduced ? '' : 'opacity-0'}`}
-                      style={{ left: `${t.x}%`, top: `${t.y}%` }}
+                      style={{ left: `${tag.x}%`, top: `${tag.y}%` }}
                     >
                       <span className="block -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border-2 border-white bg-butter px-2.5 py-1 text-[0.7rem] font-extrabold text-ink shadow-pop">
-                        step {t.n}
+                        {t('isle.lighthouse.stepTag', { n: tag.n })}
                       </span>
                     </div>
                   ))}
@@ -289,11 +289,11 @@ export default function LighthouseClimb({
       <ul className="mx-auto flex w-full max-w-[1200px] flex-wrap gap-2.5 px-6 pb-16 lg:hidden">
         {FACTS.map((f) => (
           <li
-            key={f.label}
+            key={f.labelKey}
             className="flex items-center gap-2.5 rounded-full border-2 border-white/90 bg-paper/95 px-4 py-2 text-sm font-extrabold text-ink shadow-pop"
           >
             <f.icon className="h-4 w-4 text-coral" aria-hidden />
-            {f.label}
+            {t(f.labelKey)}
           </li>
         ))}
       </ul>

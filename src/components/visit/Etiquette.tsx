@@ -3,61 +3,33 @@ import type { ComponentType } from 'react';
 import { BACK_OUT, Words } from './anim';
 import { CatDoodle, ShellDoodle, SparkleDoodle, SunHandsDoodle } from './doodles';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/lib/i18n';
 
 interface Rule {
-  title: string;
-  body: string;
-  foot: string;
+  keyPrefix: string; // visit.etiquette.rules.N
   Icon: ComponentType<{ className?: string }>;
   badge: string;
   tilt: number;
 }
 
 const RULES: Rule[] = [
-  {
-    title: 'Greet the cats',
-    body: 'Biscuit (store) and Umbra (magic house) accept tributes of chin scratches.',
-    foot: 'Umbra also accepts compliments about her house.',
-    Icon: CatDoodle,
-    badge: 'bg-rose/60',
-    tilt: -1.5,
-  },
-  {
-    title: 'Return library shells',
-    body: 'Overdue fees are paid in seashells. Pretty ones.',
-    foot: 'The librarian can tell.',
-    Icon: ShellDoodle,
-    badge: 'bg-lagoon/50',
-    tilt: 1.5,
-  },
-  {
-    title: 'Applaud the sunset',
-    body: "6:47 at Sunset Point. It's not mandatory.",
-    foot: 'It is absolutely expected.',
-    Icon: SunHandsDoodle,
-    badge: 'bg-butter/70',
-    tilt: -1.5,
-  },
-  {
-    title: "Don't lick the sparkles",
-    body: 'Magic House bylaw 12.',
-    foot: 'No further questions at this time.',
-    Icon: SparkleDoodle,
-    badge: 'bg-lavender/50',
-    tilt: 1.5,
-  },
+  { keyPrefix: 'visit.etiquette.rules.0', Icon: CatDoodle, badge: 'bg-rose/60', tilt: -1.5 },
+  { keyPrefix: 'visit.etiquette.rules.1', Icon: ShellDoodle, badge: 'bg-lagoon/50', tilt: 1.5 },
+  { keyPrefix: 'visit.etiquette.rules.2', Icon: SunHandsDoodle, badge: 'bg-butter/70', tilt: -1.5 },
+  { keyPrefix: 'visit.etiquette.rules.3', Icon: SparkleDoodle, badge: 'bg-lavender/50', tilt: 1.5 },
 ];
 
 export default function Etiquette() {
   const reduced = useReducedMotion();
+  const { t } = useLanguage();
   return (
     <section className="mx-auto max-w-[980px] px-6 py-24">
       <div className="text-center">
         <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-coral">
-          Town etiquette
+          {t('visit.etiquette.kicker')}
         </p>
         <h2 className="mt-2 font-display text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[1.05] text-ink">
-          <Words text="The unwritten rules (written down)" />
+          <Words text={t('visit.etiquette.title')} />
         </h2>
       </div>
 
@@ -68,7 +40,7 @@ export default function Etiquette() {
           const fromX = i % 2 === 0 ? 90 : -90;
           return (
             <motion.div
-              key={r.title}
+              key={r.keyPrefix}
               initial={
                 reduced
                   ? { opacity: 0 }
@@ -94,10 +66,10 @@ export default function Etiquette() {
                 <r.Icon className="h-12 w-12" />
               </span>
               <h3 className="mt-4 font-display text-[clamp(1.35rem,2vw,1.75rem)] font-semibold text-ink">
-                {r.title}
+                {t(`${r.keyPrefix}.title`)}
               </h3>
-              <p className="mt-2 font-semibold leading-relaxed text-ink/80">{r.body}</p>
-              <p className="mt-3 font-hand text-xl leading-snug text-ink-soft">{r.foot}</p>
+              <p className="mt-2 font-semibold leading-relaxed text-ink/80">{t(`${r.keyPrefix}.body`)}</p>
+              <p className="mt-3 font-hand text-xl leading-snug text-ink-soft">{t(`${r.keyPrefix}.foot`)}</p>
             </motion.div>
           );
         })}

@@ -4,20 +4,27 @@ import { motion } from 'framer-motion';
 import { Sun, Sunset, Moon, Shell, VolumeX } from 'lucide-react';
 import { useTown } from '@/lib/town';
 import type { TimeOfDay } from '@/lib/town';
+import { useLanguage } from '@/lib/i18n';
+import type { Language } from '@/lib/i18n';
 import { playChime } from '@/lib/sound';
 import { cn } from '@/lib/utils';
 
 const LINKS = [
-  { to: '/', label: 'Map' },
-  { to: '/windbell-isle', label: 'Windbell Isle' },
-  { to: '/journal', label: 'Journal' },
-  { to: '/visit', label: 'Visit' },
+  { to: '/', labelKey: 'nav.map' },
+  { to: '/windbell-isle', labelKey: 'nav.isle' },
+  { to: '/journal', labelKey: 'nav.journal' },
+  { to: '/visit', labelKey: 'nav.visit' },
 ];
 
-const TIMES: { id: TimeOfDay; icon: typeof Sun; label: string }[] = [
-  { id: 'day', icon: Sun, label: 'Day' },
-  { id: 'golden', icon: Sunset, label: 'Golden hour' },
-  { id: 'starlight', icon: Moon, label: 'Starlight' },
+const TIMES: { id: TimeOfDay; icon: typeof Sun; labelKey: string }[] = [
+  { id: 'day', icon: Sun, labelKey: 'nav.time.day' },
+  { id: 'golden', icon: Sunset, labelKey: 'nav.time.golden' },
+  { id: 'starlight', icon: Moon, labelKey: 'nav.time.starlight' },
+];
+
+const LANGS: { id: Language; label: string }[] = [
+  { id: 'en', label: 'EN' },
+  { id: 'zh', label: '中文' },
 ];
 
 const pill =
@@ -25,6 +32,7 @@ const pill =
 
 export default function Navbar() {
   const { time, setTime, soundOn, toggleSound, mapDetailOpen } = useTown();
+  const { lang, setLang, t } = useLanguage();
   const [hidden, setHidden] = useState(false);
   const lastY = useRef(0);
 
@@ -55,14 +63,14 @@ export default function Navbar() {
     >
       {/* left: logo pill */}
       <Link to="/" className={cn(pill, 'pointer-events-auto px-4 py-2')}>
-        <img src="/logo.svg" alt="Summer Town logo" className="h-9 w-9" />
+        <img src="/logo.svg" alt={t('nav.logoAlt')} className="h-9 w-9" />
         <span className="font-display text-lg font-semibold tracking-tight text-ink">
-          Summer Town
+          {t('nav.brand')}
         </span>
       </Link>
 
       {/* center: nav pill */}
-      <nav className={cn(pill, 'pointer-events-auto hidden px-2 py-1.5 md:flex')} aria-label="Main navigation">
+      <nav className={cn(pill, 'pointer-events-auto hidden px-2 py-1.5 md:flex')} aria-label={t('nav.mainNav')}>
         {LINKS.map((l) => (
           <NavLink
             key={l.to}
@@ -78,26 +86,45 @@ export default function Navbar() {
             {({ isActive }) => (
               <span className="relative inline-flex items-center gap-1.5">
                 {isActive && <span className="h-2 w-2 rounded-full bg-coral" aria-hidden />}
-                {l.label}
+                {t(l.labelKey)}
               </span>
             )}
           </NavLink>
         ))}
       </nav>
 
-      {/* right: time + sound pill */}
+      {/* right: language + time + sound pill */}
       <div className={cn(pill, 'pointer-events-auto px-2 py-1.5')}>
-        <div role="group" aria-label="Time of day" className="flex items-center gap-1 rounded-full bg-white/60 p-1">
-          {TIMES.map((t) => {
-            const Icon = t.icon;
-            const active = time === t.id;
+        <div role="group" aria-label={t('nav.language')} className="flex items-center gap-1 rounded-full bg-white/60 p-1">
+          {LANGS.map((l) => {
+            const active = lang === l.id;
             return (
               <button
-                key={t.id}
+                key={l.id}
                 type="button"
-                title={t.label}
                 aria-pressed={active}
-                onClick={() => setTime(t.id)}
+                onClick={() => setLang(l.id)}
+                className={cn(
+                  'flex h-8 items-center justify-center rounded-full px-2 text-[0.78rem] font-extrabold transition-all duration-300 ease-squash',
+                  active ? 'scale-110 bg-butter text-ink shadow-sm' : 'text-ink-soft hover:scale-105 hover:bg-white',
+                )}
+              >
+                {l.label}
+              </button>
+            );
+          })}
+        </div>
+        <div role="group" aria-label={t('nav.timeOfDay')} className="flex items-center gap-1 rounded-full bg-white/60 p-1">
+          {TIMES.map((time_) => {
+            const Icon = time_.icon;
+            const active = time === time_.id;
+            return (
+              <button
+                key={time_.id}
+                type="button"
+                title={t(time_.labelKey)}
+                aria-pressed={active}
+                onClick={() => setTime(time_.id)}
                 className={cn(
                   'flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300 ease-squash',
                   active ? 'scale-110 bg-butter text-ink shadow-sm' : 'text-ink-soft hover:scale-105 hover:bg-white',
@@ -110,7 +137,7 @@ export default function Navbar() {
         </div>
         <button
           type="button"
-          title={soundOn ? 'Sound off' : 'Sound on'}
+          title={soundOn ? t('nav.soundOff') : t('nav.soundOn')}
           aria-pressed={soundOn}
           onClick={() => {
             toggleSound();

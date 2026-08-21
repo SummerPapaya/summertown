@@ -13,10 +13,10 @@ import {
   Pledge,
 } from '@/components/HomeSections';
 import { byId } from '@/lib/landmarks';
-
-const TITLE = 'Summer Town'.split('');
+import { useLanguage } from '@/lib/i18n';
 
 export default function Home() {
+  const { t } = useLanguage();
   const [searchParams] = useSearchParams();
   const placeParam = searchParams.get('place');
   const initialDeepLink = useMemo(
@@ -49,7 +49,7 @@ export default function Home() {
   };
 
   const handleTourDone = (completed: boolean) => {
-    if (completed) toast('Tour complete — now go poke everything.');
+    if (completed) toast(t('hero.tourDone'));
   };
 
   /** Field-notes click → scroll to top + open the landmark zoom (deep link style) */
@@ -92,6 +92,8 @@ function HeroOverlay({
   onExplore: () => void;
   onTour: () => void;
 }) {
+  const { t } = useLanguage();
+  const title = t('hero.title').split('');
   return (
     <AnimatePresence>
       {visible && (
@@ -122,16 +124,16 @@ function HeroOverlay({
             transition={{ delay: 0.9, duration: 0.7, ease: [0.22, 1.2, 0.36, 1] }}
             className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-coral"
           >
-            A very small town by the sea
+            {t('hero.kicker')}
           </motion.p>
 
           {/* display title — character-level spring entrance */}
           <h1
             className="text-outline mt-3 flex flex-wrap justify-center font-display font-bold leading-[0.95] tracking-[-0.02em] text-ink"
             style={{ fontSize: 'clamp(3.5rem, 9vw, 8rem)' }}
-            aria-label="Summer Town"
+            aria-label={t('hero.title')}
           >
-            {TITLE.map((ch, i) => (
+            {title.map((ch, i) => (
               <motion.span
                 key={i}
                 aria-hidden
@@ -157,7 +159,7 @@ function HeroOverlay({
             transition={{ delay: 1.55, duration: 0.7, ease: [0.22, 1.2, 0.36, 1] }}
             className="mt-5 max-w-xl px-6 text-center text-lg font-semibold text-ink-soft"
           >
-            Thy eternal summer shall not fade.
+            {t('hero.subtitle')}
           </motion.p>
 
           <motion.div
@@ -168,10 +170,10 @@ function HeroOverlay({
             className="mt-8 flex flex-wrap items-center justify-center gap-4"
           >
             <button type="button" onClick={onExplore} className="btn-primary text-base">
-              Start exploring
+              {t('hero.explore')}
             </button>
             <button type="button" onClick={onTour} className="btn-secondary text-base">
-              Take the ferry tour
+              {t('hero.tour')}
             </button>
           </motion.div>
 
@@ -191,7 +193,7 @@ function HeroOverlay({
               <Mouse className="h-4 w-4" />
             </motion.span>
             <span className="px-3 text-center font-hand text-xl text-ink-soft">
-              scroll for the story, click the town to step inside
+              {t('hero.scrollHint')}
             </span>
           </motion.div>
         </motion.div>

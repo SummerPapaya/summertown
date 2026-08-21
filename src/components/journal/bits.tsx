@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/lib/i18n';
 import type { DoodleId } from './presets';
 
 /* ---------- washi tape strip ---------- */
@@ -98,8 +99,9 @@ export function PostmarkStamp({
 
 /* ---------- passport "collected" rubber stamp badge ---------- */
 export function CollectedStamp({ size = 76 }: { size?: number }) {
+  const { t } = useLanguage();
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" aria-label="Stamp collected" role="img">
+    <svg width={size} height={size} viewBox="0 0 100 100" aria-label={t('detail.stamped')} role="img">
       <circle
         cx="50"
         cy="50"

@@ -4,49 +4,31 @@ import { ArrowRight, Bird, Citrus, Flower2, Star, Sunset, Trophy } from 'lucide-
 import type { LucideIcon } from 'lucide-react';
 import { BACK_OUT, SQUASH, Words } from './anim';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/lib/i18n';
 
 interface Stay {
-  name: string;
+  keyPrefix: string; // visit.stay.cards.0 / .1
   img: string;
-  alt: string;
   chipClass: string;
-  tagline: string;
-  blurb: string;
-  amenities: { icon: LucideIcon; label: string }[];
+  amenityIcons: LucideIcon[];
   to: string;
   tilt: number;
 }
 
 const STAYS: Stay[] = [
   {
-    name: 'Hotel Horizon',
+    keyPrefix: 'visit.stay.cards.0',
     img: '/scene-hotel.png',
-    alt: 'The grand peach Hotel Horizon seen from the beach, with its star-shaped pool',
     chipClass: 'bg-peach',
-    tagline: '24 rooms, 24 sunsets',
-    blurb:
-      'A peach-tiered grand hotel where every balcony faces the horizon and the pool is shaped like a star. Bellhop duties by a very professional pelican.',
-    amenities: [
-      { icon: Star, label: 'star pool' },
-      { icon: Sunset, label: 'horizon balconies' },
-      { icon: Bird, label: 'pelican bellhop' },
-    ],
+    amenityIcons: [Star, Sunset, Bird],
     to: '/?place=hotel',
     tilt: -2,
   },
   {
-    name: 'The Three Villas',
+    keyPrefix: 'visit.stay.cards.1',
     img: '/scene-villas.png',
-    alt: 'Three pastel sister villas — mint, lilac and butter — around a shared garden',
     chipClass: 'bg-mint',
-    tagline: 'Mint, Lilac & Butter — pick your flavor',
-    blurb:
-      'Three sister villas sharing one garden, one lemon tree, and an eternal croquet rivalry. Rent one, or rent all three and invent a family.',
-    amenities: [
-      { icon: Citrus, label: 'one lemon tree' },
-      { icon: Trophy, label: 'croquet rivalry' },
-      { icon: Flower2, label: 'shared garden' },
-    ],
+    amenityIcons: [Citrus, Trophy, Flower2],
     to: '/?place=villas',
     tilt: 2,
   },
@@ -54,21 +36,22 @@ const STAYS: Stay[] = [
 
 export default function WhereToStay() {
   const reduced = useReducedMotion();
+  const { t } = useLanguage();
   return (
     <section id="stay" className="mx-auto max-w-[1200px] scroll-mt-[100px] px-6 py-24">
       <div className="text-center">
         <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-coral">
-          Where to stay
+          {t('visit.stay.kicker')}
         </p>
         <h2 className="mt-2 font-display text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[1.05] text-ink">
-          <Words text="Sleep where the sky does." />
+          <Words text={t('visit.stay.title')} />
         </h2>
       </div>
 
       <div className="mt-12 grid gap-8 md:grid-cols-2">
         {STAYS.map((s, i) => (
           <motion.article
-            key={s.name}
+            key={s.keyPrefix}
             initial={reduced ? { opacity: 0 } : { y: 60, rotate: s.tilt, opacity: 0 }}
             whileInView={reduced ? { opacity: 1 } : { y: 0, rotate: 0, opacity: 1 }}
             viewport={{ once: true, amount: 0.25 }}
@@ -79,7 +62,7 @@ export default function WhereToStay() {
             <div className="relative h-[240px] overflow-hidden rounded-2xl bg-lilac/40">
               <img
                 src={s.img}
-                alt={s.alt}
+                alt={t(`${s.keyPrefix}.alt`)}
                 loading="lazy"
                 className="h-full w-full object-cover transition-transform [transition-duration:600ms] ease-squash group-hover:scale-[1.06]"
               />
@@ -89,22 +72,22 @@ export default function WhereToStay() {
                   s.chipClass,
                 )}
               >
-                Stay
+                {t('visit.stay.chip')}
               </span>
             </div>
 
             <div className="p-5">
               <h3 className="font-display text-[clamp(1.35rem,2vw,1.75rem)] font-semibold text-ink">
-                {s.name}
+                {t(`${s.keyPrefix}.name`)}
               </h3>
-              <p className="mt-0.5 font-hand text-2xl leading-tight text-coral">{s.tagline}</p>
-              <p className="mt-3 font-semibold leading-relaxed text-ink/80">{s.blurb}</p>
+              <p className="mt-0.5 font-hand text-2xl leading-tight text-coral">{t(`${s.keyPrefix}.tagline`)}</p>
+              <p className="mt-3 font-semibold leading-relaxed text-ink/80">{t(`${s.keyPrefix}.blurb`)}</p>
 
               {/* amenity icons pop in staggered when the card enters */}
               <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3">
-                {s.amenities.map((a, ai) => (
+                {s.amenityIcons.map((Icon, ai) => (
                   <motion.span
-                    key={a.label}
+                    key={ai}
                     initial={{ scale: 0, rotate: -20, opacity: 0 }}
                     whileInView={{ scale: 1, rotate: 0, opacity: 1 }}
                     viewport={{ once: true, amount: 0.6 }}
@@ -116,15 +99,15 @@ export default function WhereToStay() {
                     className="flex items-center gap-2"
                   >
                     <span className="flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-white bg-cream shadow-sm">
-                      <a.icon className="h-4 w-4 text-ink" />
+                      <Icon className="h-4 w-4 text-ink" />
                     </span>
-                    <span className="text-xs font-extrabold text-ink-soft">{a.label}</span>
+                    <span className="text-xs font-extrabold text-ink-soft">{t(`${s.keyPrefix}.amenities.${ai}`)}</span>
                   </motion.span>
                 ))}
               </div>
 
               <Link to={s.to} className="btn-primary mt-6 px-5 py-2.5 text-sm">
-                Book on the map <ArrowRight className="h-4 w-4" />
+                {t('visit.stay.bookCta')} <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </motion.article>
@@ -148,8 +131,7 @@ export default function WhereToStay() {
             aria-hidden
           />
           <p className="font-hand text-2xl leading-snug text-ink">
-            Budget option: the library&rsquo;s moon-reading nook. Officially discouraged.
-            Unofficially: bring a blanket.
+            {t('visit.stay.budget')}
           </p>
         </Link>
       </motion.div>

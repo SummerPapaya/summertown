@@ -16,6 +16,7 @@ import {
 } from '@/lib/landmarks';
 import type { Landmark, FilterId } from '@/lib/landmarks';
 import { useTown } from '@/lib/town';
+import { useLanguage, enText } from '@/lib/i18n';
 import { playChime, playStatic } from '@/lib/sound';
 import SparkleField from './SparkleField';
 import DetailCard from './DetailCard';
@@ -60,6 +61,7 @@ export default function TownMap({
   const reduced = useRef(false);
 
   const { stamps, setMapDetailOpen, soundOn } = useTown();
+  const { t } = useLanguage();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -515,7 +517,7 @@ export default function TownMap({
         {/* terrain (extended canvas: +80px of northern sea) */}
         <img
           src="/map-base-ext.png"
-          alt="Illustrated map of Summer Town"
+          alt={t('map.mapAlt')}
           draggable={false}
           className="absolute inset-0 h-full w-full object-cover"
           style={{ zIndex: 1 }}
@@ -603,7 +605,7 @@ export default function TownMap({
             <button
               key={lm.id}
               type="button"
-              aria-label={`Open ${lm.name}`}
+              aria-label={t('map.open', { name: t(lm.nameKey) })}
               onClick={() => {
                 if (!dragMoved.current && !heroVisible && !touring) openLandmark(lm);
               }}
@@ -679,7 +681,7 @@ export default function TownMap({
         {/* Long Pier hotspot — invisible click area */}
         <button
           type="button"
-          aria-label="The Long Pier"
+          aria-label={t('map.pier.aria')}
           onClick={() => {
             if (!dragMoved.current && !heroVisible && !touring) setPierOpen((v) => !v);
           }}
@@ -713,10 +715,10 @@ export default function TownMap({
               >
                 <div className="rounded-[14px] border-[3px] border-white bg-paper px-4 py-2 text-center shadow-sticker">
                   <div className="font-display text-[0.95rem] font-semibold text-ink">
-                    {tagFor.name}
+                    {t(tagFor.nameKey)}
                   </div>
-                  <div className="font-hand text-lg leading-tight text-ink-soft">
-                    {tagFor.whisper}
+                  <div lang="en" className="font-hand text-lg leading-tight text-ink-soft">
+                    {enText(tagFor.whisperKey)}
                   </div>
                 </div>
                 <div className="h-3 w-3 -translate-y-[7px] rotate-45 border-b-[3px] border-r-[3px] border-white bg-paper" />
@@ -740,13 +742,15 @@ export default function TownMap({
                 type="button"
                 onClick={() => setPierOpen(false)}
                 className="absolute right-3 top-3 text-ink-soft hover:text-ink"
-                aria-label="Close"
+                aria-label={t('map.close')}
               >
                 <X className="h-4 w-4" />
               </button>
-              <div className="font-display text-lg font-semibold text-ink">{PIER.name}</div>
-              <div className="font-hand text-xl text-ink-soft">{PIER.whisper}</div>
-              <p className="mt-2 text-sm font-semibold leading-relaxed text-ink">{PIER.line}</p>
+              <div className="font-display text-lg font-semibold text-ink">{t(PIER.nameKey)}</div>
+              <div lang="en" className="font-hand text-xl text-ink-soft">
+                {enText(PIER.whisperKey)}
+              </div>
+              <p className="mt-2 text-sm font-semibold leading-relaxed text-ink">{t(PIER.lineKey)}</p>
               <button
                 type="button"
                 onClick={() => {
@@ -755,7 +759,7 @@ export default function TownMap({
                 }}
                 className="btn-primary mt-3 px-4 py-2 text-sm"
               >
-                Meet Windbell Isle →
+                {t('map.pier.meetIsle')}
               </button>
             </motion.div>
           )}
@@ -857,7 +861,7 @@ export default function TownMap({
           <div className="flex items-center gap-2 rounded-full border-[3px] border-white bg-paper/90 py-2 pl-3 pr-4 shadow-sticker backdrop-blur-sm">
             <StampIcon className="h-6 w-6" />
             <span className="font-display text-sm font-semibold text-ink">
-              Passport {stamps.length}/14
+              {t('map.passport', { n: stamps.length })}
             </span>
           </div>
         </div>
@@ -879,7 +883,7 @@ export default function TownMap({
                 )}
               >
                 <span className="h-2.5 w-2.5 rounded-full" style={{ background: f.accent }} />
-                {f.label}
+                {t(f.labelKey)}
               </button>
             ))}
           </div>
@@ -893,7 +897,7 @@ export default function TownMap({
             <button
               type="button"
               onClick={() => stepZoom(1)}
-              aria-label="Zoom in"
+              aria-label={t('map.zoomIn')}
               className="flex h-9 w-9 items-center justify-center rounded-full text-ink transition-all duration-300 ease-squash hover:bg-white"
             >
               <Plus className="h-4 w-4" />
@@ -901,7 +905,7 @@ export default function TownMap({
             <button
               type="button"
               onClick={() => stepZoom(-1)}
-              aria-label="Zoom out"
+              aria-label={t('map.zoomOut')}
               className="flex h-9 w-9 items-center justify-center rounded-full text-ink transition-all duration-300 ease-squash hover:bg-white"
             >
               <Minus className="h-4 w-4" />
@@ -909,7 +913,7 @@ export default function TownMap({
             <button
               type="button"
               onClick={resetView}
-              aria-label="Reset view (compass)"
+              aria-label={t('map.resetView')}
               className="flex h-11 w-11 items-center justify-center rounded-full bg-white/70 text-ink transition-transform duration-300 ease-squash hover:scale-110"
             >
               <span
@@ -935,7 +939,7 @@ export default function TownMap({
               transition={{ duration: 0.5, ease: [0.22, 1.2, 0.36, 1] }}
             >
               <div className="rounded-full border-[3px] border-white bg-paper/90 px-5 py-2.5 text-center text-sm font-extrabold text-ink shadow-sticker backdrop-blur-sm">
-                Drag to wander · Click a building to peek inside
+                {t('map.hint')}
               </div>
             </motion.div>
           </div>
@@ -954,7 +958,7 @@ export default function TownMap({
               onClick={cancelTour}
               className="flex items-center gap-2 rounded-full border-[3px] border-white bg-ink/80 px-5 py-2.5 text-sm font-extrabold text-cream shadow-sticker backdrop-blur-sm"
             >
-              <X className="h-4 w-4" /> Skip the tour
+              <X className="h-4 w-4" /> {t('map.skipTour')}
             </motion.button>
           </div>
         )}

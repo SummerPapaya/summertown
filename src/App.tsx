@@ -7,6 +7,9 @@ import Home from '@/pages/Home';
 import WindbellIsle from '@/pages/WindbellIsle';
 import Journal from '@/pages/Journal';
 import Visit from '@/pages/Visit';
+import AppleAlbum from '@/pages/AppleAlbum';
+import AppleAdmin from '@/pages/AppleAdmin';
+import TownAdmin from '@/pages/TownAdmin';
 
 export default function App() {
   return (
@@ -17,6 +20,9 @@ export default function App() {
           <Route path="/windbell-isle" element={<WindbellIsle />} />
           <Route path="/journal" element={<Journal />} />
           <Route path="/visit" element={<Visit />} />
+          <Route path="/apple-album" element={<AppleAlbum />} />
+          <Route path="/apple-admin" element={<AppleAdmin />} />
+          <Route path="/town-admin" element={<TownAdmin />} />
           <Route path="*" element={<Home />} />
         </Routes>
       </Layout>

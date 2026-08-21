@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-labelledby="title desc">
+  <title id="title">How a visit works</title>
+  <desc id="desc">Chinese workflow: arrive, explore, step inside, ferry on.</desc>
+  <defs>
+    <linearGradient id="board" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFF9EF"/>
+      <stop offset="1" stop-color="#FFF3DF"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="320" rx="28" fill="url(#board)"/>
+  <rect x="4" y="4" width="1192" height="312" rx="26" fill="none" stroke="#FFFFFF" stroke-width="6"/>
+  <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif">
+    <text x="56" y="52" fill="#FF9B9B" font-size="16" font-weight="800" letter-spacing="3">&#23567;&#38215;&#25955;&#27493;&#25351;&#21335;</text>
+    <text x="56" y="96" fill="#4A4470" font-size="34" font-weight="800">&#19968;&#27425;&#36896;&#35775;&#24590;&#20040;&#36208;</text>
+  </g>
+  <path d="M170 210 H1030" fill="none" stroke="#CFEBF7" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="170" cy="210" r="8" fill="#FF9B9B"/>
+  <circle cx="456" cy="210" r="8" fill="#7EC8E3"/>
+  <circle cx="742" cy="210" r="8" fill="#FFB37E"/>
+  <circle cx="1030" cy="210" r="8" fill="#FFDD94"/>
+  <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif">
+    <g transform="translate(70 130)">
+      <rect width="200" height="150" rx="24" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="4"/>
+      <circle cx="36" cy="36" r="18" fill="#FF9B9B"/>
+      <text x="36" y="42" text-anchor="middle" font-size="18" font-weight="800" fill="#FFF9EF">1</text>
+      <text x="24" y="86" font-size="22" font-weight="800" fill="#4A4470">&#25265;&#36798;</text>
+      <text x="24" y="116" font-size="16" font-weight="600" fill="#7B74A3">&#20174;&#28193;&#36718;&#23548;&#35272;</text>
+      <text x="24" y="140" font-size="16" font-weight="600" fill="#7B74A3">&#33853;&#22312;&#22320;&#22270;&#19978;</text>
+    </g>
+    <g transform="translate(356 130)">
+      <rect width="200" height="150" rx="24" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="4"/>
+      <circle cx="36" cy="36" r="18" fill="#7EC8E3"/>
+      <text x="36" y="42" text-anchor="middle" font-size="18" font-weight="800" fill="#FFF9EF">2</text>
+      <text x="24" y="86" font-size="22" font-weight="800" fill="#4A4470">&#25506;&#32034;</text>
+      <text x="24" y="116" font-size="16" font-weight="600" fill="#7B74A3">&#24179;&#31227;&#12289;&#32553;&#25918;</text>
+      <text x="24" y="140" font-size="16" font-weight="600" fill="#7B74A3">&#24182;&#31579;&#36873;&#22320;&#26631;</text>
+    </g>
+    <g transform="translate(642 130)">
+      <rect width="200" height="150" rx="24" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="4"/>
+      <circle cx="36" cy="36" r="18" fill="#FFB37E"/>
+      <text x="36" y="42" text-anchor="middle" font-size="18" font-weight="800" fill="#FFF9EF">3</text>
+      <text x="24" y="86" font-size="22" font-weight="800" fill="#4A4470">&#36208;&#36827;&#21435;</text>
+      <text x="24" y="116" font-size="16" font-weight="600" fill="#7B74A3">&#25171;&#24320;&#19968;&#24230;&#24314;&#31569;</text>
+      <text x="24" y="140" font-size="16" font-weight="600" fill="#7B74A3">&#30475;&#25925;&#20107;&#19982;&#24425;&#34507;</text>
+    </g>
+    <g transform="translate(928 130)">
+      <rect width="200" height="150" rx="24" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="4"/>
+      <circle cx="36" cy="36" r="18" fill="#FFDD94"/>
+      <text x="36" y="42" text-anchor="middle" font-size="18" font-weight="800" fill="#4A4470">4</text>
+      <text x="24" y="86" font-size="22" font-weight="800" fill="#4A4470">&#20877;&#28193;&#36718;</text>
+      <text x="24" y="116" font-size="16" font-weight="600" fill="#7B74A3">&#21435;&#39118;&#38047;&#23830;&#12289;&#25163;&#36134;</text>
+      <text x="24" y="140" font-size="16" font-weight="600" fill="#7B74A3">&#25110;&#36896;&#35775;&#25351;&#21335;</text>
+    </g>
+  </g>
+</svg>

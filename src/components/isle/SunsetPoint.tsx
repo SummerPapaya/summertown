@@ -2,11 +2,10 @@ import { useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useLanguage } from '@/lib/i18n';
 import { usePrefersReducedMotion } from './hooks';
 
 gsap.registerPlugin(ScrollTrigger);
-
-const H2_WORDS = 'Sunset Point applauds daily at 6:47.'.split(' ');
 
 const SKY_STOPS = [
   /* gold (base) → apricot → coral-rose → first-lavender */
@@ -50,6 +49,8 @@ export default function SunsetPoint({
   sectionRef: RefObject<HTMLElement | null>;
 }) {
   const reduced = usePrefersReducedMotion();
+  const { t } = useLanguage();
+  const h2Words = t('isle.sunset.title').split(' ');
   const sceneRef = useRef<HTMLDivElement>(null);
   const sunRef = useRef<HTMLDivElement>(null);
   const stop2Ref = useRef<HTMLDivElement>(null);
@@ -84,9 +85,9 @@ export default function SunsetPoint({
         { y: 0, scale: 1.25, duration: 1 },
         0,
       )
-        .fromTo(stop2Ref.current, { opacity: 0 }, { opacity: 0.88, duration: 0.34 }, 0.12)
-        .fromTo(stop3Ref.current, { opacity: 0 }, { opacity: 0.88, duration: 0.3 }, 0.42)
-        .fromTo(stop4Ref.current, { opacity: 0 }, { opacity: 0.88, duration: 0.28 }, 0.66)
+        .fromTo(stop2Ref.current, { opacity: 0 }, { opacity: 0.8, duration: 0.34 }, 0.12)
+        .fromTo(stop3Ref.current, { opacity: 0 }, { opacity: 0.8, duration: 0.3 }, 0.42)
+        .fromTo(stop4Ref.current, { opacity: 0 }, { opacity: 0.8, duration: 0.28 }, 0.66)
         .fromTo(
           words,
           { y: 34, opacity: 0 },
@@ -132,12 +133,12 @@ export default function SunsetPoint({
   }, [reduced, sectionRef]);
 
   return (
-    <section ref={sectionRef} aria-label="Sunset Point" className="relative">
+    <section ref={sectionRef} aria-label={t('isle.sunset.sectionAria')} className="relative">
       <div ref={sceneRef} className="relative h-[100dvh] overflow-hidden">
         {/* bottom-anchored diorama (rocks + point + lighthouse silhouette) */}
         <img
           src="/isle-sunset-scene.png"
-          alt="Sunset Point: lavender rocks and the lighthouse above a glassy sea"
+          alt={t('isle.sunset.sceneAlt')}
           loading="lazy"
           className="absolute inset-x-0 bottom-0 block h-auto w-full"
           style={{
@@ -151,13 +152,13 @@ export default function SunsetPoint({
           className="absolute inset-0"
           aria-hidden
           style={{
-            maskImage: 'linear-gradient(to bottom, black 52%, transparent 76%)',
-            WebkitMaskImage: 'linear-gradient(to bottom, black 52%, transparent 76%)',
+            maskImage: 'linear-gradient(to bottom, black 30%, transparent 42%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, black 30%, transparent 42%)',
           }}
         >
-          <div className="absolute inset-0" style={{ background: SKY_STOPS[0], opacity: 0.85 }} />
+          <div className="absolute inset-0" style={{ background: SKY_STOPS[0], opacity: 0.8 }} />
           {reduced ? (
-            <div className="absolute inset-0" style={{ background: SKY_STOPS[3], opacity: 0.88 }} />
+            <div className="absolute inset-0" style={{ background: SKY_STOPS[3], opacity: 0.8 }} />
           ) : (
             <>
               <div ref={stop2Ref} className="absolute inset-0 opacity-0" style={{ background: SKY_STOPS[1] }} />
@@ -232,17 +233,17 @@ export default function SunsetPoint({
         {/* overlaid text */}
         <div ref={textRef} className="absolute inset-x-0 top-[12%] px-6 text-center">
           <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-ink/80">
-            sunset point · nightly
+            {t('isle.sunset.kicker')}
           </p>
           <h2
             className="mt-3 font-display text-[clamp(2rem,4.5vw,3.5rem)] font-semibold leading-[1.05] text-ink"
             style={{ textShadow: '0 2px 0 rgba(255,249,239,0.65)' }}
           >
             <span ref={wordsRef} className="inline-block">
-              {H2_WORDS.map((w, i) => (
+              {h2Words.map((w, i) => (
                 <span key={i} className="inline-block will-change-transform">
                   {w}
-                  {i < H2_WORDS.length - 1 ? ' ' : ''}
+                  {i < h2Words.length - 1 ? ' ' : ''}
                 </span>
               ))}
             </span>
@@ -251,7 +252,7 @@ export default function SunsetPoint({
             className="mt-3 font-hand text-[clamp(1.3rem,2.2vw,1.9rem)] text-ink"
             style={{ textShadow: '0 2px 0 rgba(255,249,239,0.65)' }}
           >
-            Seats: all of them. Tickets: none. Encore: tomorrow.
+            {t('isle.sunset.hand')}
           </p>
         </div>
       </div>

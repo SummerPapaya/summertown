@@ -3,13 +3,12 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ChevronDown } from 'lucide-react';
 import { useTown } from '@/lib/town';
+import { useLanguage } from '@/lib/i18n';
 import { playChime } from '@/lib/sound';
 import { playKnock } from './sounds';
 import { usePrefersReducedMotion } from './hooks';
 
 gsap.registerPlugin(ScrollTrigger);
-
-const TITLE = 'Windbell Isle'.split('');
 
 const TITLE_SHADOW = [
   '-6px 0 0 var(--ink)',
@@ -44,6 +43,8 @@ function Gull({ className }: { className?: string }) {
 export default function PierHero() {
   const reduced = usePrefersReducedMotion();
   const { soundOn } = useTown();
+  const { t } = useLanguage();
+  const title = t('isle.pierHero.title').split('');
   const soundRef = useRef(soundOn);
   useEffect(() => {
     soundRef.current = soundOn;
@@ -129,13 +130,13 @@ export default function PierHero() {
   }, [reduced]);
 
   return (
-    <section ref={sectionRef} aria-label="The Long Pier" className="relative">
+    <section ref={sectionRef} aria-label={t('isle.pierHero.sectionAria')} className="relative">
       <div ref={sceneRef} className="relative h-[100dvh] overflow-hidden">
         {/* one panorama, three clip-path depths (paper-theatre parallax) */}
         <div ref={farRef} className="absolute inset-y-0 left-[-12%] w-[124%] will-change-transform">
           <img
             src="/isle-pier-pano.png"
-            alt="The Long Pier crossing the shallows to Windbell Isle"
+            alt={t('isle.pierHero.panoAlt')}
             fetchPriority="high"
             className="h-full w-full object-cover"
             style={{ clipPath: 'inset(0 0 30% 0)' }}
@@ -184,11 +185,11 @@ export default function PierHero() {
         {/* title block */}
         <div ref={titleRef} className="absolute inset-x-0 top-[15%] px-6 text-center">
           <span className="inline-block rounded-full border-[3px] border-white bg-[rgba(255,249,239,0.85)] px-4 py-1.5 text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-ink shadow-sticker">
-            312 planks west
+            {t('isle.pierHero.badge')}
           </span>
           <h1 className="mt-5 font-display text-[clamp(2.75rem,8vw,6.5rem)] font-bold leading-[1.0] tracking-[-0.015em]">
             <span ref={charsRef} className="inline-block">
-              {TITLE.map((c, i) => (
+              {title.map((c, i) => (
                 <span
                   key={i}
                   className="inline-block will-change-transform"
@@ -203,7 +204,7 @@ export default function PierHero() {
             className="mt-4 font-hand text-[clamp(1.4rem,2.4vw,2rem)] text-ink"
             style={{ textShadow: '0 2px 0 rgba(255,255,255,0.65)' }}
           >
-            walk slowly — the crabs are commuting
+            {t('isle.pierHero.hand')}
           </p>
         </div>
 
@@ -226,7 +227,7 @@ export default function PierHero() {
             className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em]"
             style={{ textShadow: '0 1px 0 rgba(255,255,255,0.7)' }}
           >
-            step onto the pier
+            {t('isle.pierHero.scrollHint')}
           </span>
         </div>
       </div>

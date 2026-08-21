@@ -3,13 +3,12 @@ import type { RefObject } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useTown } from '@/lib/town';
+import { useLanguage } from '@/lib/i18n';
 import { playLilyNote } from './sounds';
 import { NoteGlyph, WordRise } from './shared';
 import { usePrefersReducedMotion, SQUASH, BACK_OUT } from './hooks';
 
-const CHIPS = ['~400 lilies', '1 pavilion', '0 hurry'];
-const BODY =
-  "Nobody owns Windbell Isle; the wind rents it by the hour. White lilies of the valley grow everywhere the path doesn't, and the whole meadow smells like the idea of rain.";
+const CHIP_KEYS = ['isle.meadow.chips.0', 'isle.meadow.chips.1', 'isle.meadow.chips.2'];
 
 /** little lily-of-the-valley stem: curved stalk + three hanging bells + leaf */
 function LilySvg() {
@@ -47,6 +46,7 @@ function LilySvg() {
 
 /** one swaying stem; hover/focus rings a tiny chime-note ripple at its bell */
 function LilyStem({ i, soundOn }: { i: number; soundOn: boolean }) {
+  const { t } = useLanguage();
   const [ping, setPing] = useState(0);
   const lastSound = useRef(0);
   const timer = useRef<number | null>(null);
@@ -74,7 +74,7 @@ function LilyStem({ i, soundOn }: { i: number; soundOn: boolean }) {
   return (
     <button
       type="button"
-      aria-label={`Lily of the valley stem ${i + 1}`}
+      aria-label={t('isle.meadow.lilyAria', { n: i + 1 })}
       onMouseEnter={trigger}
       onFocus={trigger}
       className="relative block h-20 w-8 shrink-0 md:h-24 md:w-10"
@@ -116,12 +116,13 @@ export default function LilyMeadow({
   sectionRef?: RefObject<HTMLElement | null>;
 }) {
   const { soundOn, collectStamp } = useTown();
+  const { t } = useLanguage();
   const reduced = usePrefersReducedMotion();
 
   return (
     <section
       ref={sectionRef}
-      aria-label="Arrival — the lily meadow"
+      aria-label={t('isle.meadow.sectionAria')}
       className="relative mx-auto max-w-[1200px] px-6 py-24 md:py-32"
     >
       <motion.div
@@ -129,26 +130,26 @@ export default function LilyMeadow({
         onViewportEnter={() => {
           /* stepping off the pier earns the isle stamp (passport contract) */
           if (collectStamp('windbell-isle')) {
-            toast('Stamp collected — Windbell Isle!', {
-              description: 'Your passport just got sea-heavier. (1 of 14)',
+            toast(t('isle.meadow.stampToast'), {
+              description: t('isle.meadow.stampToastDesc'),
             });
           }
         }}
       >
         <div>
           <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-coral">
-            arrival · the lily meadow
+            {t('isle.meadow.kicker')}
           </p>
           <h2 className="mt-3 font-display text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[1.05] text-ink">
-            <WordRise text="An isle that keeps the town's quiet." />
+            <WordRise text={t('isle.meadow.title')} />
           </h2>
           <p className="mt-5 max-w-[54ch] text-[clamp(1rem,1.15vw,1.15rem)] font-semibold leading-[1.65] text-ink/90">
-            <WordRise text={BODY} stagger={0.018} duration={0.5} />
+            <WordRise text={t('isle.meadow.body')} stagger={0.018} duration={0.5} />
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            {CHIPS.map((c, i) => (
+            {CHIP_KEYS.map((key, i) => (
               <motion.span
-                key={c}
+                key={key}
                 initial={{ scale: 0.5, opacity: 0 }}
                 whileInView={{ scale: 1, opacity: 1 }}
                 viewport={{ once: true, amount: 0.6 }}
@@ -159,7 +160,7 @@ export default function LilyMeadow({
                 }}
                 className="rounded-full border-2 border-white bg-paper px-4 py-2 text-sm font-extrabold text-ink shadow-pop"
               >
-                {c}
+                {t(key)}
               </motion.span>
             ))}
           </div>
@@ -175,7 +176,7 @@ export default function LilyMeadow({
           <div className="relative overflow-hidden rounded-[20px]">
             <motion.img
               src="/scene-isle.png"
-              alt="Windbell Isle seen from the last plank of the pier"
+              alt={t('isle.meadow.sceneAlt')}
               loading="lazy"
               initial={{ scale: 1.06 }}
               whileInView={{ scale: 1 }}
@@ -185,7 +186,7 @@ export default function LilyMeadow({
             />
           </div>
           <span className="absolute -top-4 left-6 rotate-[-4deg] rounded-md bg-butter/90 px-3 py-1 font-hand text-xl leading-none text-ink shadow-sm">
-            the isle, from the last plank
+            {t('isle.meadow.caption')}
           </span>
         </motion.div>
       </motion.div>
@@ -193,7 +194,7 @@ export default function LilyMeadow({
       {/* lily-of-the-valley border strip */}
       <div
         className="mt-14 flex items-end justify-between gap-1 overflow-hidden border-t-2 border-dashed border-ink/10 px-2 pt-2"
-        aria-label="A border of lilies of the valley"
+        aria-label={t('isle.meadow.borderAria')}
       >
         {Array.from({ length: 14 }, (_, i) => (
           <LilyStem key={i} i={i} soundOn={soundOn} />

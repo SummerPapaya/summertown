@@ -4,6 +4,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Bell } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTown } from '@/lib/town';
+import { trpc } from '@/providers/trpc';
+import { useLanguage } from '@/lib/i18n';
 import { playBellNote } from './sounds';
 import { NoteGlyph } from './shared';
 import { BACK_OUT, SQUASH } from './hooks';
@@ -17,25 +19,9 @@ const BELLS = [
   { x: 53, y: 28, note: 'Sol', accent: '#FFC3D0' },
   { x: 62, y: 29.5, note: 'La', accent: '#C6B6E8' },
 ];
-const ORDINALS = ['first', 'second', 'third', 'fourth', 'fifth'];
-const MEANINGS = [
-  'good news',
-  'rain later',
-  "someone's thinking of you",
-  'pie is ready',
-  'the tide said hi',
-];
 const WISH_ACCENTS = ['#FFDD94', '#FFC3D0', '#BDEBD2', '#E6DDF7', '#FFC9A3', '#A5E3D8'];
 const WISHES_KEY = 'st-isle-wishes';
-
-const SEED_WISHES = [
-  'for the tide to bring back my blue bucket',
-  'that the bakery never runs out of melon pan',
-  'for one more week of summer',
-  'that the gulls learn my name',
-  'for rain on the tin roof tonight',
-  "that granny's roses win again",
-];
+const SEED_WISH_COUNT = 6;
 
 interface Wish {
   id: string;
@@ -119,10 +105,12 @@ function WishStrip({ wish, index }: { wish: Wish; index: number }) {
 /**
  * Section 3 — The Windbell Pavilion. Five playable bells (illustration
  * hotspots + chime ladder), cycling fortune captions, and a tie-a-wish
- * line persisted to localStorage.
+ * line persisted to the town database (localStorage fallback when the
+ * backend is unreachable, e.g. the static build).
  */
 export default function Pavilion() {
   const { soundOn } = useTown();
+  const { t } = useLanguage();
   const [rings, setRings] = useState(0);
   const [wobble, setWobble] = useState({ i: -1, tick: 0 });
   const [bursts, setBursts] = useState<{ id: number; i: number }[]>([]);
@@ -130,6 +118,65 @@ export default function Pavilion() {
   const timers = useRef<number[]>([]);
   const [userWishes, setUserWishes] = useState<Wish[]>(loadWishes);
   const [draft, setDraft] = useState('');
+
+  /* wishes live in the town database; when it can't be reached (static
+     build / network down) we silently keep them in localStorage instead */
+  const utils = trpc.useUtils();
+  const wishesQuery = trpc.town.listWishes.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  const addWishMutation = trpc.town.addWish.useMutation();
+  const [offline, setOffline] = useState(false);
+  const [freshIds, setFreshIds] = useState<Set<number>>(new Set());
+  /* older pages fetched via the "load more" button (offset pagination) */
+  const [olderWishes, setOlderWishes] = useState<{ rows: Wish[]; nextCursor: number | null }>({
+    rows: [],
+    nextCursor: null,
+  });
+  const [loadingMore, setLoadingMore] = useState(false);
+  const useLocal = offline || wishesQuery.isError;
+  const serverWishes: Wish[] = [
+    ...(wishesQuery.data?.items ?? []).map((w) => ({
+      id: `d${w.id}`,
+      text: w.text,
+      accent: w.accent,
+      fresh: freshIds.has(w.id),
+    })),
+    ...olderWishes.rows,
+  ];
+  /* once older pages are loaded their cursor wins; otherwise the first
+     page's cursor decides whether more wishes exist on the server */
+  const wishesCursor = olderWishes.rows.length
+    ? olderWishes.nextCursor
+    : (wishesQuery.data?.nextCursor ?? null);
+
+  const loadMoreWishes = async () => {
+    if (loadingMore || wishesCursor == null) return;
+    setLoadingMore(true);
+    try {
+      const page = await utils.town.listWishes.fetch({ cursor: wishesCursor });
+      setOlderWishes((prev) => {
+        const seen = new Set([
+          ...(wishesQuery.data?.items ?? []).map((w) => w.id),
+          ...prev.rows.map((w) => Number(w.id.slice(1))),
+        ]);
+        return {
+          rows: [
+            ...prev.rows,
+            ...page.items
+              .filter((w) => !seen.has(w.id))
+              .map((w) => ({ id: `d${w.id}`, text: w.text, accent: w.accent })),
+          ],
+          nextCursor: page.nextCursor,
+        };
+      });
+    } catch {
+      /* keep the button visible so the visitor can retry */
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     const stash = timers.current;
@@ -162,36 +209,66 @@ export default function Pavilion() {
     e.preventDefault();
     const text = draft.trim().slice(0, 60);
     if (!text) return;
-    setUserWishes((w) => [
-      ...w,
-      {
-        id: `u${Date.now()}`,
-        text,
-        accent: WISH_ACCENTS[Math.floor(Math.random() * WISH_ACCENTS.length)],
-        fresh: true,
-      },
-    ]);
+    const accent = WISH_ACCENTS[Math.floor(Math.random() * WISH_ACCENTS.length)];
     setDraft('');
-    toast('Wish tied — the wind will read it.');
+    toast(t('isle.pavilion.wishToast'));
+    if (useLocal) {
+      setUserWishes((w) => [...w, { id: `u${Date.now()}`, text, accent, fresh: true }]);
+      return;
+    }
+    // tie it on the rope right away, then settle up with the database
+    const tempId = -Date.now();
+    setFreshIds((s) => new Set(s).add(tempId));
+    // a new row at the head shifts every offset — previously loaded older
+    // pages would skip a wish, so collapse back to the first page
+    setOlderWishes({ rows: [], nextCursor: null });
+    utils.town.listWishes.setData(undefined, (old) => ({
+      items: [{ id: tempId, text, accent, createdAt: new Date() }, ...(old?.items ?? [])],
+      total: (old?.total ?? 0) + 1,
+      nextCursor: old?.nextCursor ?? null,
+    }));
+    addWishMutation.mutate(
+      { text, accent },
+      {
+        onSuccess: () => {
+          void utils.town.listWishes.invalidate();
+        },
+        onError: () => {
+          // backend unreachable — keep the wish on this device instead
+          setOffline(true);
+          utils.town.listWishes.setData(undefined, (old) =>
+            old
+              ? {
+                  ...old,
+                  items: old.items.filter((w) => w.id !== tempId),
+                  total: Math.max(0, old.total - 1),
+                }
+              : old,
+          );
+          setUserWishes((w) => [...w, { id: `u${Date.now()}`, text, accent, fresh: true }]);
+        },
+      },
+    );
   };
 
   const allWishes: Wish[] = [
-    ...SEED_WISHES.map((text, i) => ({
+    ...Array.from({ length: SEED_WISH_COUNT }, (_, i) => ({
       id: `s${i}`,
-      text,
+      text: t(`isle.pavilion.seedWishes.${i}`),
       accent: WISH_ACCENTS[i % WISH_ACCENTS.length],
     })),
+    ...serverWishes,
     ...userWishes,
   ];
 
   const caption =
     rings === 0
-      ? 'give one a ring — the wind is listening'
-      : `that one means “${MEANINGS[(rings - 1) % MEANINGS.length]}”`;
+      ? t('isle.pavilion.ringPrompt')
+      : t('isle.pavilion.meaning', { m: t(`isle.pavilion.meanings.${(rings - 1) % 5}`) });
 
   return (
     <section
-      aria-label="The windbell pavilion"
+      aria-label={t('isle.pavilion.sectionAria')}
       className="relative mx-auto max-w-[1200px] px-6 py-24 md:py-32"
     >
       <motion.div
@@ -215,7 +292,7 @@ export default function Pavilion() {
               <div className="relative overflow-hidden rounded-[20px]">
                 <img
                   src="/isle-pavilion-scene.png"
-                  alt="Rows of brass windbells hanging in the pavilion above the lily meadow"
+                  alt={t('isle.pavilion.sceneAlt')}
                   loading="lazy"
                   className="block h-auto w-full"
                 />
@@ -224,7 +301,7 @@ export default function Pavilion() {
                   <button
                     key={b.note}
                     type="button"
-                    aria-label={`Ring the ${ORDINALS[i]} windbell`}
+                    aria-label={t('isle.pavilion.ringAria', { ord: t(`isle.pavilion.ordinals.${i}`) })}
                     onClick={() => ring(i)}
                     className="group absolute flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white shadow-pop transition-transform duration-200 ease-squash hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink md:h-9 md:w-9"
                     style={{ left: `${b.x}%`, top: `${b.y}%`, background: b.accent }}
@@ -294,6 +371,19 @@ export default function Pavilion() {
                   <WishStrip key={w.id} wish={w} index={idx} />
                 ))}
               </div>
+              {/* offline/local lists are already complete — no pager needed */}
+              {!useLocal && wishesCursor != null && (
+                <div className="mt-4 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => void loadMoreWishes()}
+                    disabled={loadingMore}
+                    className="btn-secondary px-5 py-2 text-sm disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60"
+                  >
+                    {loadingMore ? t('common.loading') : t('common.loadMore')}
+                  </button>
+                </div>
+              )}
             </div>
           </motion.div>
 
@@ -303,20 +393,19 @@ export default function Pavilion() {
               variants={item}
               className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-coral"
             >
-              the windbell pavilion
+              {t('isle.pavilion.kicker')}
             </motion.p>
             <motion.h2
               variants={item}
               className="mt-3 font-display text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[1.05] text-ink"
             >
-              The pavilion plays the weather.
+              {t('isle.pavilion.title')}
             </motion.h2>
             <motion.p
               variants={item}
               className="mt-4 max-w-[52ch] text-[clamp(1rem,1.15vw,1.15rem)] font-semibold leading-[1.65] text-ink/90"
             >
-              Rows of brass bells hang where the breeze can read them. Locals say the
-              pavilion forecast the great calm of &rsquo;98 an hour before the sea agreed.
+              {t('isle.pavilion.body')}
             </motion.p>
 
             {/* chime ladder */}
@@ -324,14 +413,14 @@ export default function Pavilion() {
               variants={item}
               className="mt-6 flex flex-wrap gap-2.5"
               role="group"
-              aria-label="Chime ladder — play the five windbells"
+              aria-label={t('isle.pavilion.ladderAria')}
             >
               {BELLS.map((b, i) => (
                 <button
                   key={b.note}
                   type="button"
                   onClick={() => ring(i)}
-                  aria-label={`Ring the ${ORDINALS[i]} windbell (${b.note})`}
+                  aria-label={t('isle.pavilion.ringAriaNote', { ord: t(`isle.pavilion.ordinals.${i}`), note: b.note })}
                   className="flex items-center gap-2 rounded-full border-[3px] border-white px-4 py-2 font-extrabold text-ink shadow-pop transition-transform duration-200 ease-squash hover:-translate-y-0.5 hover:scale-105 active:translate-y-0.5"
                   style={{ background: `linear-gradient(135deg, ${b.accent}, #FFF9EF)` }}
                 >
@@ -373,7 +462,7 @@ export default function Pavilion() {
                 htmlFor="isle-wish"
                 className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-ink-soft"
               >
-                Tie a wish to the bells
+                {t('isle.pavilion.wishLabel')}
               </label>
               <div className="mt-2 flex flex-col gap-2.5 sm:flex-row">
                 <input
@@ -381,15 +470,15 @@ export default function Pavilion() {
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   maxLength={60}
-                  placeholder="whisper it to the wind…"
+                  placeholder={t('isle.pavilion.wishPlaceholder')}
                   className="w-full flex-1 rounded-full border-2 border-ink/15 bg-cream px-5 py-3 font-semibold text-ink placeholder:text-ink-soft/70 focus:border-coral focus:outline-none"
                 />
                 <button type="submit" className="btn-primary whitespace-nowrap">
-                  Tie a wish to the bells
+                  {t('isle.pavilion.wishButton')}
                 </button>
               </div>
               <p className="mt-1.5 text-xs font-bold text-ink-soft">
-                {60 - draft.length} characters left · wishes keep on this device
+                {t('isle.pavilion.charsLeft', { n: 60 - draft.length })}
               </p>
             </motion.form>
           </div>

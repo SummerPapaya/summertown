@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowDown, BedDouble } from 'lucide-react';
 import { Chars, SQUASH } from './anim';
 import { CloudSvg, GullSvg } from './doodles';
+import { useLanguage } from '@/lib/i18n';
 
 /* Ambient loops are isolated + memoized so parent re-renders can't reset them
    (react-dev.md performance rules). All carry `.ambient` → reduced-motion off. */
@@ -46,6 +47,7 @@ const Gull = memo(function Gull() {
 });
 
 const FerryFloat = memo(function FerryFloat() {
+  const { t } = useLanguage();
   return (
     <div className="relative mx-auto w-full max-w-[520px]">
       <div
@@ -54,7 +56,7 @@ const FerryFloat = memo(function FerryFloat() {
       >
         <img
           src="/ferry.png"
-          alt="The M.V. Bellweather — a cheerful pastel ferry with a striped awning"
+          alt={t('visit.hero.ferryAlt')}
           className="w-full drop-shadow-[0_18px_24px_rgba(74,68,112,0.18)]"
         />
       </div>
@@ -101,6 +103,7 @@ const WaveBand = memo(function WaveBand() {
 
 export default function Hero() {
   const reduced = useReducedMotion();
+  const { t } = useLanguage();
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -131,11 +134,11 @@ export default function Hero() {
             transition={{ duration: 0.5, ease: SQUASH }}
             className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-coral"
           >
-            Harbor Office · Window 1
+            {t('visit.hero.kicker')}
           </motion.p>
 
           <h1 className="mt-3 font-display text-[clamp(2.75rem,6vw,5.5rem)] font-bold leading-[1.0] tracking-[-0.015em] text-ink">
-            <Chars text="Plan your visit" />
+            <Chars text={t('visit.hero.title')} />
           </h1>
 
           <motion.p
@@ -144,9 +147,8 @@ export default function Hero() {
             transition={{ delay: 0.55, duration: 0.6, ease: SQUASH }}
             className="mt-5 max-w-md text-lg font-semibold leading-relaxed text-ink/85"
           >
-            One ferry, one tide, zero reasons to rush. Here&rsquo;s everything
-            the harbor master tells everyone,{' '}
-            <span className="font-hand text-2xl text-ink">verbatim.</span>
+            {t('visit.hero.body')}{' '}
+            <span className="font-hand text-2xl text-ink">{t('visit.hero.bodyHand')}</span>
           </motion.p>
 
           <div className="mt-8 flex flex-wrap gap-4">
@@ -158,7 +160,7 @@ export default function Hero() {
               transition={{ delay: 0.75, duration: 0.5, ease: SQUASH }}
               className="btn-primary"
             >
-              Check the ferry <ArrowDown className="h-4 w-4" />
+              {t('visit.hero.ferryCta')} <ArrowDown className="h-4 w-4" />
             </motion.button>
             <motion.button
               type="button"
@@ -168,7 +170,7 @@ export default function Hero() {
               transition={{ delay: 0.87, duration: 0.5, ease: SQUASH }}
               className="btn-secondary"
             >
-              Where to stay <BedDouble className="h-4 w-4" />
+              {t('visit.hero.stayCta')} <BedDouble className="h-4 w-4" />
             </motion.button>
           </div>
         </div>

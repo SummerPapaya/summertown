@@ -72,7 +72,7 @@ module.exports = {
       fontFamily: {
         display: ['Fredoka', 'Nunito', 'sans-serif'],
         body: ['Nunito', 'ui-sans-serif', 'sans-serif'],
-        hand: ['Caveat', 'cursive'],
+        hand: ['Caveat', 'JasonHandwriting2', 'cursive'],
       },
       borderRadius: {
         card: '28px',

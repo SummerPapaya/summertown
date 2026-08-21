@@ -11,6 +11,9 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { trpc } from '@/providers/trpc';
+import { useLanguage } from '@/lib/i18n';
+import type { Language } from '@/lib/i18n';
 import type { DoodleId } from './presets';
 import { DOODLES, EASE_BACK_156, EASE_SQUASH } from './presets';
 import { Doodle, PostmarkStamp } from './bits';
@@ -18,8 +21,12 @@ import { Doodle, PostmarkStamp } from './bits';
 const STORE_KEY = 'st-postcards';
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
-function stampDate(d = new Date()): string {
-  return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+function fmtDate(month: number, day: number, lang: Language): string {
+  return lang === 'zh' ? `${month + 1}月${day}日` : `${MONTHS[month]} ${day}`;
+}
+
+function stampDate(lang: Language, d = new Date()): string {
+  return fmtDate(d.getMonth(), d.getDate(), lang);
 }
 
 interface StoredPostcard {
@@ -56,87 +63,124 @@ function readUserCards(): StoredPostcard[] {
   }
 }
 
-/* the 8 seeded postcards (journal.md §4) */
-const SEEDS: WallPostcard[] = [
-  {
-    id: 's1',
-    scene: '/scene-magic.png',
-    message: 'Got lost in the Magic House. Found a better version of myself. 10/10',
-    signature: '— M.',
-    doodle: 'windbell',
-    date: 'JUN 14',
-    rest: -2.4,
+/* map a DB postcard row to the StoredPostcard shape used by the wall */
+function dbCardToStored(
+  row: {
+    id: number;
+    message: string;
+    signature: string;
+    doodle: string;
+    createdAt: Date | string;
   },
-  {
-    id: 's2',
-    doodle: 'apple',
-    message: 'The pie bell is real. We waited. Worth it.',
-    signature: '— the Hendersons',
-    date: 'JUN 11',
-    rest: 1.8,
-  },
-  {
-    id: 's3',
-    doodle: 'windbell',
-    message: 'Heard the bells ring by themselves. I was, in fact, on my way home.',
-    signature: '— R.',
-    date: 'JUN 9',
-    rest: -1.2,
-  },
-  {
-    id: 's4',
-    scene: '/scene-radio.png',
-    message: 'Requested a song for my gran. Sunny dedicated it to a passing boat. She cried. The boat did too, probably.',
-    signature: '— P.',
-    date: 'JUN 6',
-    rest: 2.6,
-  },
-  {
-    id: 's5',
-    scene: '/scene-hotel.png',
-    message: 'Came for one night at Hotel Horizon. Stayed for four sunsets.',
-    signature: '— O.',
-    date: 'JUN 2',
-    rest: -2.8,
-  },
-  {
-    id: 's6',
-    doodle: 'lighthouse',
-    message: 'Climbed the lighthouse. The keeper waved. I waved back. Would wave again.',
-    signature: '— T.',
-    date: 'MAY 29',
-    rest: 1.4,
-  },
-  {
-    id: 's7',
-    scene: '/scene-coffee.png',
-    message: 'The sea-salt latte rearranged my priorities.',
-    signature: '— anonymous',
-    date: 'MAY 27',
-    rest: -1.8,
-  },
-  {
-    id: 's8',
-    doodle: 'shell',
-    message: 'Found a shell that sounds exactly like the 6pm mix. The tide has taste.',
-    signature: '— K.',
-    date: 'MAY 22',
-    rest: 2.2,
-  },
+  lang: Language,
+): StoredPostcard {
+  return {
+    id: `db${row.id}`,
+    message: row.message,
+    signature: row.signature,
+    doodle: DOODLES.some((d) => d.id === row.doodle) ? (row.doodle as DoodleId) : 'shell',
+    date: stampDate(lang, new Date(row.createdAt)),
+  };
+}
+
+/* the 8 seeded postcards (journal.md §4) — copy lives in the dictionaries */
+interface SeedPostcard {
+  id: string;
+  scene?: string;
+  seedIndex: number;
+  doodle?: DoodleId;
+  dateMD: [number, number]; // [month (0-based), day]
+  rest: number;
+}
+
+const SEEDS: SeedPostcard[] = [
+  { id: 's1', scene: '/scene-magic.png', seedIndex: 0, doodle: 'windbell', dateMD: [5, 14], rest: -2.4 },
+  { id: 's2', doodle: 'apple', seedIndex: 1, dateMD: [5, 11], rest: 1.8 },
+  { id: 's3', doodle: 'windbell', seedIndex: 2, dateMD: [5, 9], rest: -1.2 },
+  { id: 's4', scene: '/scene-radio.png', seedIndex: 3, dateMD: [5, 6], rest: 2.6 },
+  { id: 's5', scene: '/scene-hotel.png', seedIndex: 4, dateMD: [5, 2], rest: -2.8 },
+  { id: 's6', doodle: 'lighthouse', seedIndex: 5, dateMD: [4, 29], rest: 1.4 },
+  { id: 's7', scene: '/scene-coffee.png', seedIndex: 6, dateMD: [4, 27], rest: -1.8 },
+  { id: 's8', doodle: 'shell', seedIndex: 7, dateMD: [4, 22], rest: 2.2 },
 ];
 
 export default function PostcardWall() {
   const reduced = useReducedMotion();
+  const { lang, t } = useLanguage();
   const [userCards, setUserCards] = useState<StoredPostcard[]>(readUserCards);
+  const [backendDown, setBackendDown] = useState(false);
   const [justPinned, setJustPinned] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 
+  const utils = trpc.useUtils();
+  const listQuery = trpc.town.listPostcards.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  const addPostcard = trpc.town.addPostcard.useMutation();
+
+  // backend mode once the list has loaded; any fetch/network failure keeps
+  // us on the localStorage path (static builds have no /api at all)
+  const backendOk = listQuery.isSuccess && !backendDown;
+
+  /* older pages fetched via the "load more" button (offset pagination) */
+  const [olderCards, setOlderCards] = useState<{
+    rows: Awaited<ReturnType<typeof utils.town.listPostcards.fetch>>['items'];
+    nextCursor: number | null;
+  }>({ rows: [], nextCursor: null });
+  const [loadingMore, setLoadingMore] = useState(false);
+  const cardsCursor = olderCards.rows.length
+    ? olderCards.nextCursor
+    : (listQuery.data?.nextCursor ?? null);
+
+  const loadMoreCards = async () => {
+    if (loadingMore || cardsCursor == null) return;
+    setLoadingMore(true);
+    try {
+      const page = await utils.town.listPostcards.fetch({ cursor: cardsCursor });
+      setOlderCards((prev) => {
+        const seen = new Set([
+          ...(listQuery.data?.items ?? []).map((r) => r.id),
+          ...prev.rows.map((r) => r.id),
+        ]);
+        return {
+          rows: [...prev.rows, ...page.items.filter((r) => !seen.has(r.id))],
+          nextCursor: page.nextCursor,
+        };
+      });
+    } catch {
+      /* keep the button visible so the visitor can retry */
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
   const wall: WallPostcard[] = useMemo(
-    () => [...userCards.map((c) => ({ ...c, rest: -2, user: true })), ...SEEDS],
-    [userCards],
+    () => [
+      ...(backendOk
+        ? [...(listQuery.data?.items ?? []), ...olderCards.rows].map((r) =>
+            dbCardToStored(r, lang),
+          )
+        : userCards
+      ).map((c) => ({
+        ...c,
+        rest: -2,
+        user: true,
+      })),
+      ...SEEDS.map((s) => ({
+        id: s.id,
+        scene: s.scene,
+        message: t(`journal.postcards.seeds.${s.seedIndex}.message`),
+        signature: t(`journal.postcards.seeds.${s.seedIndex}.signature`),
+        doodle: s.doodle,
+        date: fmtDate(s.dateMD[0], s.dateMD[1], lang),
+        rest: s.rest,
+      })),
+    ],
+    [backendOk, listQuery.data, olderCards.rows, userCards, lang, t],
   );
 
-  const pinCard = (card: StoredPostcard) => {
+  const pinLocal = (card: StoredPostcard) => {
     const next = [card, ...userCards].slice(0, 24);
     setUserCards(next);
     try {
@@ -144,9 +188,60 @@ export default function PostcardWall() {
     } catch {
       /* ignore */
     }
-    setJustPinned(card.id);
+  };
+
+  const pinCard = (card: StoredPostcard) => {
+    if (!backendOk) {
+      pinLocal(card);
+      setJustPinned(card.id);
+      setOpen(false);
+      toast(t('journal.postcards.pinnedToast'), { description: t('journal.postcards.pinnedToastDesc') });
+      return;
+    }
+    // optimistic: prepend a temp row so the slam animation fires instantly
+    const tempId = -Date.now();
+    // a new row at the head shifts every offset — previously loaded older
+    // pages would skip a card, so collapse back to the first page
+    setOlderCards({ rows: [], nextCursor: null });
+    utils.town.listPostcards.setData(undefined, (old) => ({
+      items: [
+        { id: tempId, message: card.message, signature: card.signature, doodle: card.doodle, createdAt: new Date() },
+        ...(old?.items ?? []),
+      ],
+      total: (old?.total ?? 0) + 1,
+      nextCursor: old?.nextCursor ?? null,
+    }));
+    setJustPinned(`db${tempId}`);
     setOpen(false);
-    toast('Pinned to the wall!', { description: 'The imaginary mailbox delivers again.' });
+    toast(t('journal.postcards.pinnedToast'), { description: t('journal.postcards.pinnedToastDesc') });
+    addPostcard.mutate(
+      {
+        message: card.message.slice(0, 280),
+        signature: card.signature.slice(0, 60),
+        doodle: card.doodle,
+      },
+      {
+        // on success nothing to do: the optimistic row is data-identical to
+        // the saved one, and the next mount refetches fresh rows anyway
+        // (swapping it in would remount the card mid-slam-animation)
+        onError: () => {
+          // network/static-build failure: roll back the optimistic card and
+          // silently persist to localStorage instead (no error toast)
+          utils.town.listPostcards.setData(undefined, (old) =>
+            old
+              ? {
+                  ...old,
+                  items: old.items.filter((r) => r.id !== tempId),
+                  total: Math.max(0, old.total - 1),
+                }
+              : old,
+          );
+          setBackendDown(true);
+          pinLocal(card);
+          setJustPinned(card.id);
+        },
+      },
+    );
   };
 
   return (
@@ -160,16 +255,16 @@ export default function PostcardWall() {
           transition={{ duration: 0.6, ease: EASE_SQUASH }}
         >
           <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-coral">
-            Postcard wall
+            {t('journal.postcards.kicker')}
           </p>
           <h2
             id="postcards-title"
             className="mt-2 font-display text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[1.05] text-ink"
           >
-            Postcards from visitors
+            {t('journal.postcards.title')}
           </h2>
           <p className="mt-1.5 font-hand text-[clamp(1.25rem,2vw,1.6rem)] text-ink-soft">
-            leave one, the mailbox is imaginary but reliable
+            {t('journal.postcards.hand')}
           </p>
         </motion.div>
 
@@ -183,7 +278,7 @@ export default function PostcardWall() {
             <DialogTrigger asChild>
               <button type="button" className="btn-primary">
                 <PenLine className="h-4 w-4" />
-                Write a postcard
+                {t('journal.postcards.write')}
               </button>
             </DialogTrigger>
             <WritePostcardDialog onPin={pinCard} reduced={!!reduced} />
@@ -203,6 +298,20 @@ export default function PostcardWall() {
           />
         ))}
       </div>
+
+      {/* local-only mode already shows every card — no pager needed */}
+      {backendOk && cardsCursor != null && (
+        <div className="mt-2 flex justify-center">
+          <button
+            type="button"
+            onClick={() => void loadMoreCards()}
+            disabled={loadingMore}
+            className="btn-secondary px-5 py-2 text-sm disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60"
+          >
+            {loadingMore ? t('common.loading') : t('common.loadMore')}
+          </button>
+        </div>
+      )}
     </section>
   );
 }
@@ -274,11 +383,17 @@ function PostcardCard({
 
       {card.user && (
         <span className="mt-2 inline-block rounded-full bg-mint/70 px-2.5 py-0.5 text-[0.6rem] font-extrabold uppercase tracking-[0.14em] text-ink">
-          fresh from the mailbox
+          <FreshBadge />
         </span>
       )}
     </motion.div>
   );
+}
+
+/* ================= "fresh from the mailbox" badge ================= */
+function FreshBadge() {
+  const { t } = useLanguage();
+  return <>{t('journal.postcards.freshBadge')}</>;
 }
 
 /* ================= write-a-postcard dialog ================= */
@@ -289,6 +404,7 @@ function WritePostcardDialog({
   onPin: (card: StoredPostcard) => void;
   reduced: boolean;
 }) {
+  const { lang, t } = useLanguage();
   const [doodle, setDoodle] = useState<DoodleId>('shell');
   const [message, setMessage] = useState('');
   const [signature, setSignature] = useState('');
@@ -300,9 +416,9 @@ function WritePostcardDialog({
     onPin({
       id: `u${Date.now()}`,
       message: message.trim().slice(0, 140),
-      signature: signature.trim() ? `— ${signature.trim()}` : '— a passerby',
+      signature: signature.trim() ? `— ${signature.trim()}` : t('journal.postcards.dialog.passerby'),
       doodle,
-      date: stampDate(),
+      date: stampDate(lang),
     });
     setMessage('');
     setSignature('');
@@ -325,17 +441,17 @@ function WritePostcardDialog({
       >
         <DialogHeader>
           <DialogTitle className="font-display text-2xl font-semibold text-ink">
-            Write a postcard
+            {t('journal.postcards.dialog.title')}
           </DialogTitle>
           <DialogDescription className="font-hand text-xl text-ink-soft">
-            pick a doodle, say it in 140 characters, sign it like you mean it
+            {t('journal.postcards.dialog.desc')}
           </DialogDescription>
         </DialogHeader>
 
         {/* doodle select */}
         <fieldset className="mt-5">
           <legend className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-ink-soft">
-            Doodle
+            {t('journal.postcards.dialog.doodleLegend')}
           </legend>
           <div className="mt-2 grid grid-cols-4 gap-2">
             {DOODLES.map((d) => {
@@ -355,7 +471,7 @@ function WritePostcardDialog({
                 >
                   <Doodle id={d.id} size={38} />
                   <span className="text-[0.6rem] font-extrabold uppercase tracking-[0.1em] text-ink">
-                    {d.label}
+                    {t(d.labelKey)}
                   </span>
                 </button>
               );
@@ -366,7 +482,7 @@ function WritePostcardDialog({
         {/* live preview */}
         <div className="mt-5">
           <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-ink-soft">
-            Preview
+            {t('journal.postcards.dialog.preview')}
           </p>
           <div className="sticker-card mt-2 flex items-start gap-4 p-4" style={{ rotate: '-1deg' }}>
             <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-cream">
@@ -374,13 +490,13 @@ function WritePostcardDialog({
             </div>
             <div className="min-w-0 flex-1">
               <p className="break-words font-hand text-[1.4rem] leading-[1.25] text-ink">
-                {message.trim() || 'dear summer town…'}
+                {message.trim() || t('journal.postcards.dialog.previewPlaceholder')}
               </p>
               <div className="mt-1.5 flex items-end justify-between gap-2">
                 <p className="text-xs font-extrabold text-ink-soft">
-                  {signature.trim() ? `— ${signature.trim()}` : '— a passerby'}
+                  {signature.trim() ? `— ${signature.trim()}` : t('journal.postcards.dialog.passerby')}
                 </p>
-                <PostmarkStamp size={48} date={stampDate()} />
+                <PostmarkStamp size={48} date={stampDate(lang)} />
               </div>
             </div>
           </div>
@@ -392,7 +508,7 @@ function WritePostcardDialog({
             htmlFor="st-pc-msg"
             className="flex items-baseline justify-between text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-ink-soft"
           >
-            Message
+            {t('journal.postcards.dialog.messageLabel')}
             <span className={cn('font-bold', message.length >= 140 && 'text-coral')}>
               {message.length}/140
             </span>
@@ -403,7 +519,7 @@ function WritePostcardDialog({
             maxLength={140}
             rows={3}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="The bells rang and I understood everything, briefly…"
+            placeholder={t('journal.postcards.dialog.messagePlaceholder')}
             className="mt-2 w-full resize-none rounded-2xl border-[3px] border-white bg-cream px-4 py-3 font-hand text-2xl leading-[1.3] text-ink placeholder:text-ink-soft/50 focus:outline-none focus:ring-2 focus:ring-lagoon"
           />
         </div>
@@ -414,14 +530,14 @@ function WritePostcardDialog({
             htmlFor="st-pc-sig"
             className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-ink-soft"
           >
-            Signature
+            {t('journal.postcards.dialog.signatureLabel')}
           </label>
           <input
             id="st-pc-sig"
             value={signature}
             maxLength={32}
             onChange={(e) => setSignature(e.target.value)}
-            placeholder="your name (or alias)"
+            placeholder={t('journal.postcards.dialog.signaturePlaceholder')}
             className="mt-2 w-full rounded-full border-[3px] border-white bg-cream px-4 py-2.5 text-sm font-bold text-ink placeholder:text-ink-soft/50 focus:outline-none focus:ring-2 focus:ring-lagoon"
           />
         </div>
@@ -434,7 +550,7 @@ function WritePostcardDialog({
             className="btn-primary disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Pin className="h-4 w-4" />
-            Pin it
+            {t('journal.postcards.dialog.pinButton')}
           </button>
         </div>
       </motion.div>

@@ -1,9 +1,8 @@
 import { memo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
+import { useLanguage } from '@/lib/i18n';
 import { EASE_BACK_17, EASE_BACK_2, EASE_SQUASH } from './presets';
 import { PinHead, TapeStrip } from './bits';
-
-const TITLE = 'The Town Journal'.split('');
 
 interface Ephemera {
   id: string;
@@ -22,6 +21,8 @@ const EPHEMERA: Ephemera[] = [
 
 export default function BulletinHero() {
   const reduced = useReducedMotion();
+  const { t } = useLanguage();
+  const title = t('journal.hero.title').split('');
 
   return (
     <section className="relative flex min-h-[88dvh] items-center justify-center overflow-hidden px-3 pb-10 pt-[100px] sm:px-6">
@@ -88,16 +89,16 @@ export default function BulletinHero() {
           transition={{ delay: 0.25, duration: 0.6, ease: EASE_SQUASH }}
           className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-coral"
         >
-          Vol. 34 · The Summer Edition
+          {t('journal.hero.vol')}
         </motion.p>
 
         {/* H1 — character spring (stagger 0.035s, y:70 scale:0.7→1, back.out(1.7)) */}
         <h1
           className="text-outline mt-4 flex flex-wrap justify-center font-display font-bold leading-[1.0] tracking-[-0.015em] text-ink"
           style={{ fontSize: 'clamp(2.75rem, 6vw, 5.5rem)' }}
-          aria-label="The Town Journal"
+          aria-label={t('journal.hero.title')}
         >
-          {TITLE.map((ch, i) => (
+          {title.map((ch, i) => (
             <motion.span
               key={i}
               aria-hidden
@@ -121,8 +122,7 @@ export default function BulletinHero() {
           transition={{ delay: reduced ? 0.6 : 1.05, duration: 0.6, ease: EASE_SQUASH }}
           className="mx-auto mt-5 max-w-xl text-lg font-semibold leading-[1.65] text-ink/85"
         >
-          Fourteen landmarks, three festivals, one mysterious key. All documented, mostly
-          accurately.
+          {t('journal.hero.subtitle')}
         </motion.p>
 
         <motion.p
@@ -132,7 +132,7 @@ export default function BulletinHero() {
           className="mt-4 inline-block bg-butter/60 px-4 py-1 font-hand text-[clamp(1.25rem,2vw,1.6rem)] text-ink"
           style={{ borderRadius: 4 }}
         >
-          — maintained by the library, argued with by everyone
+          {t('journal.hero.hand')}
         </motion.p>
       </div>
     </section>
@@ -167,21 +167,23 @@ const PetalDrift = memo(function PetalDrift() {
 /* ================= ephemera illustrations ================= */
 
 function TideChart() {
+  const { t } = useLanguage();
   return (
     <div className="w-[132px] bg-paper p-3 pt-5 shadow-sticker sm:w-[150px]" style={{ borderRadius: 6 }}>
-      <p className="text-[0.58rem] font-extrabold uppercase tracking-[0.16em] text-ink-soft">Tide chart</p>
+      <p className="text-[0.58rem] font-extrabold uppercase tracking-[0.16em] text-ink-soft">{t('journal.hero.tideChart')}</p>
       <svg viewBox="0 0 120 64" className="mt-1 w-full">
         <path d="M4 20 Q18 8 32 20 T60 20 T88 20 T116 20" fill="none" stroke="#7EC8E3" strokeWidth="2.6" strokeLinecap="round" />
         <path d="M4 36 Q18 26 32 36 T60 36 T88 36 T116 36" fill="none" stroke="#A5E3D8" strokeWidth="2.6" strokeLinecap="round" />
         <path d="M4 52 Q18 44 32 52 T60 52 T88 52 T116 52" fill="none" stroke="#5FA8CF" strokeWidth="2.6" strokeLinecap="round" />
         <circle cx="98" cy="12" r="7" fill="#FFDD94" stroke="#4A4470" strokeWidth="1.6" />
       </svg>
-      <p className="font-hand text-base leading-none text-ink-soft">high at 4:20, obviously</p>
+      <p className="font-hand text-base leading-none text-ink-soft">{t('journal.hero.tideHand')}</p>
     </div>
   );
 }
 
 function FerryTicket() {
+  const { t } = useLanguage();
   return (
     <div className="w-[136px] sm:w-[160px]" style={{ filter: 'drop-shadow(0 10px 24px rgba(74,68,112,0.14))' }}>
       <div
@@ -196,11 +198,11 @@ function FerryTicket() {
           maskComposite: 'intersect',
         }}
       >
-        <p className="text-[0.58rem] font-extrabold uppercase tracking-[0.18em] text-ink-soft">Ferry · Admit one</p>
-        <p className="mt-1 font-display text-lg font-semibold leading-none text-ink">ISLE RUNNER</p>
+        <p className="text-[0.58rem] font-extrabold uppercase tracking-[0.18em] text-ink-soft">{t('journal.hero.ticketTop')}</p>
+        <p className="mt-1 font-display text-lg font-semibold leading-none text-ink">{t('journal.hero.ticketName')}</p>
         <div className="mt-2 flex items-center justify-between border-t-2 border-dashed border-ink/20 pt-2">
-          <span className="font-hand text-lg leading-none text-coral">seat 7B</span>
-          <span className="text-[0.6rem] font-extrabold text-ink-soft">NO REFUNDS*</span>
+          <span className="font-hand text-lg leading-none text-coral">{t('journal.hero.ticketSeat')}</span>
+          <span className="text-[0.6rem] font-extrabold text-ink-soft">{t('journal.hero.ticketNoRefunds')}</span>
         </div>
       </div>
     </div>
@@ -208,6 +210,7 @@ function FerryTicket() {
 }
 
 function PressedFlower() {
+  const { t } = useLanguage();
   return (
     <div className="w-[104px] rotate-0 bg-paper p-2.5 pt-5 shadow-sticker" style={{ borderRadius: 6 }}>
       <svg viewBox="0 0 80 88" className="w-full">
@@ -224,19 +227,20 @@ function PressedFlower() {
           />
         ))}
       </svg>
-      <p className="mt-1 text-center font-hand text-base leading-none text-ink-soft">lily of the valley</p>
+      <p className="mt-1 text-center font-hand text-base leading-none text-ink-soft">{t('journal.hero.flowerCaption')}</p>
       <TapeStrip className="left-1/2 top-1.5 h-4 w-16 -translate-x-1/2 rotate-1" />
     </div>
   );
 }
 
 function Polaroid() {
+  const { t } = useLanguage();
   return (
     <div className="w-[116px] bg-white p-2 pb-3 shadow-sticker sm:w-[132px]" style={{ borderRadius: 4 }}>
       <div className="overflow-hidden bg-lilac/50" style={{ borderRadius: 2 }}>
         <img src="/i-lighthouse.png" alt="" className="h-[104px] w-full object-cover sm:h-[120px]" loading="lazy" />
       </div>
-      <p className="mt-1.5 text-center font-hand text-lg leading-none text-ink">sunset point!</p>
+      <p className="mt-1.5 text-center font-hand text-lg leading-none text-ink">{t('journal.hero.polaroidCaption')}</p>
     </div>
   );
 }

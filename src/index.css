@@ -2,6 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---- zh display + handwriting webfonts (self-hosted, subset) ---- */
+/* 851 GBai 马克笔体 (by 8:51:22 pm, zh extended by lamda05) — headings */
+@font-face {
+  font-family: 'GBai Marker';
+  src: url('/fonts/GBai.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+/* 清松手寫體2 / JasonHandwriting2 (OFL 1.1) — wishes & postcards */
+@font-face {
+  font-family: 'JasonHandwriting2';
+  src: url('/fonts/JasonHandwriting2.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   :root {
     /* ---- Summer Town core tokens (design.md §2) ---- */
@@ -342,4 +360,193 @@
   .ambient {
     animation: none !important;
   }
+}
+
+/* ---- footer column headings ---- */
+/* EN: rounded Fredoka bold (body stack renders too thin at this size) */
+footer h3.uppercase {
+  font-family: 'Fredoka', 'Nunito', ui-sans-serif, sans-serif;
+  font-weight: 700;
+}
+/* zh: GBai marker, noticeably larger than the latin caps size */
+html[lang='zh-CN'] footer h3.uppercase {
+  font-family: 'GBai Marker', 'Fredoka', ui-sans-serif, sans-serif;
+  font-weight: 400;
+  font-size: 1.1rem;
+  letter-spacing: 0.12em;
+}
+
+/* ================= zh-CN typography + fonts =================
+   Chinese glyphs run visually larger and heavier than latin at the same
+   point size, so the whole zh experience gets an airier pass:
+   - root type scaled to ~0.92x, prose forced to weight 400 with more
+     line-height (1.7) and a whisper of letter-spacing
+   - Fredoka display/button/pill styles switch to 851 GBai 马克笔体 (marker)
+   - Caveat handwriting switches to 清松手寫體2 (JasonHandwriting2), smaller/lighter
+   - wish strips (Pavilion) and postcard message/signature (PostcardWall)
+     are targeted via their stable class hooks (components are read-only) */
+html[lang='zh-CN'] {
+  font-size: 92%;
+}
+
+html[lang='zh-CN'] body {
+  font-weight: 400;
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+}
+
+/* prose: never bold, extra air */
+html[lang='zh-CN'] p,
+html[lang='zh-CN'] li {
+  font-weight: 400;
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+}
+
+/* interactive overlays / toasts / popups get the same light treatment */
+html[lang='zh-CN'] [data-sonner-toaster] *,
+html[lang='zh-CN'] [role='dialog'] {
+  font-weight: 400;
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+}
+
+/* headings, buttons, pills/labels → 851 GBai 马克笔体 (single weight, no faux bold) */
+html[lang='zh-CN'] .font-display,
+html[lang='zh-CN'] .btn-primary,
+html[lang='zh-CN'] .btn-secondary,
+html[lang='zh-CN'] .uppercase {
+  font-family: 'GBai Marker', 'Fredoka', 'Nunito', ui-sans-serif, sans-serif;
+  font-weight: 400;
+}
+
+/* wide latin caps tracking reads choppy on hanzi */
+html[lang='zh-CN'] .uppercase {
+  letter-spacing: 0.06em;
+}
+
+/* homepage hero title 夏天镇: airier tracking + smooth thick white outline
+   (full 5px-radius disc of shadows => round, jag-free edges) */
+html[lang='zh-CN'] h1.text-outline {
+  letter-spacing: 0.14em;
+  text-shadow:
+    -5px -1px 0 #fff,
+    -5px 0px 0 #fff,
+    -5px 1px 0 #fff,
+    -4px -3px 0 #fff,
+    -4px -2px 0 #fff,
+    -4px -1px 0 #fff,
+    -4px 0px 0 #fff,
+    -4px 1px 0 #fff,
+    -4px 2px 0 #fff,
+    -4px 3px 0 #fff,
+    -3px -4px 0 #fff,
+    -3px -3px 0 #fff,
+    -3px -2px 0 #fff,
+    -3px -1px 0 #fff,
+    -3px 0px 0 #fff,
+    -3px 1px 0 #fff,
+    -3px 2px 0 #fff,
+    -3px 3px 0 #fff,
+    -3px 4px 0 #fff,
+    -2px -4px 0 #fff,
+    -2px -3px 0 #fff,
+    -2px -2px 0 #fff,
+    -2px -1px 0 #fff,
+    -2px 0px 0 #fff,
+    -2px 1px 0 #fff,
+    -2px 2px 0 #fff,
+    -2px 3px 0 #fff,
+    -2px 4px 0 #fff,
+    -1px -5px 0 #fff,
+    -1px -4px 0 #fff,
+    -1px -3px 0 #fff,
+    -1px -2px 0 #fff,
+    -1px -1px 0 #fff,
+    -1px 0px 0 #fff,
+    -1px 1px 0 #fff,
+    -1px 2px 0 #fff,
+    -1px 3px 0 #fff,
+    -1px 4px 0 #fff,
+    -1px 5px 0 #fff,
+    0px -5px 0 #fff,
+    0px -4px 0 #fff,
+    0px -3px 0 #fff,
+    0px -2px 0 #fff,
+    0px -1px 0 #fff,
+    0px 1px 0 #fff,
+    0px 2px 0 #fff,
+    0px 3px 0 #fff,
+    0px 4px 0 #fff,
+    0px 5px 0 #fff,
+    1px -5px 0 #fff,
+    1px -4px 0 #fff,
+    1px -3px 0 #fff,
+    1px -2px 0 #fff,
+    1px -1px 0 #fff,
+    1px 0px 0 #fff,
+    1px 1px 0 #fff,
+    1px 2px 0 #fff,
+    1px 3px 0 #fff,
+    1px 4px 0 #fff,
+    1px 5px 0 #fff,
+    2px -4px 0 #fff,
+    2px -3px 0 #fff,
+    2px -2px 0 #fff,
+    2px -1px 0 #fff,
+    2px 0px 0 #fff,
+    2px 1px 0 #fff,
+    2px 2px 0 #fff,
+    2px 3px 0 #fff,
+    2px 4px 0 #fff,
+    3px -4px 0 #fff,
+    3px -3px 0 #fff,
+    3px -2px 0 #fff,
+    3px -1px 0 #fff,
+    3px 0px 0 #fff,
+    3px 1px 0 #fff,
+    3px 2px 0 #fff,
+    3px 3px 0 #fff,
+    3px 4px 0 #fff,
+    4px -3px 0 #fff,
+    4px -2px 0 #fff,
+    4px -1px 0 #fff,
+    4px 0px 0 #fff,
+    4px 1px 0 #fff,
+    4px 2px 0 #fff,
+    4px 3px 0 #fff,
+    5px -1px 0 #fff,
+    5px 0px 0 #fff,
+    5px 1px 0 #fff;
+}
+
+/* handwritten (Caveat) elements → 清松手寫體2, smaller + lighter */
+html[lang='zh-CN'] .font-hand {
+  font-family: 'JasonHandwriting2', 'Caveat', cursive;
+  font-weight: 400;
+  zoom: 0.92; /* ≈0.85x combined with the 92% root scale */
+}
+
+/* whispers stay English — keep them in Caveat at full size */
+html[lang='zh-CN'] .font-hand[lang='en'] {
+  font-family: 'Caveat', cursive;
+  zoom: 1;
+}
+
+/* wish strips on the windbell pavilion line (Pavilion.tsx hook) */
+html[lang='zh-CN'] .line-clamp-4.font-hand {
+  font-family: 'JasonHandwriting2', 'Caveat', cursive;
+  font-weight: 400;
+  zoom: 0.85;
+}
+
+/* postcard wall (PostcardWall.tsx masonry hook): message + signature */
+html[lang='zh-CN'] .lg\:columns-3 .font-hand {
+  font-family: 'JasonHandwriting2', 'Caveat', cursive;
+  font-weight: 400;
+  zoom: 0.88;
+}
+html[lang='zh-CN'] .lg\:columns-3 .text-sm {
+  font-family: 'JasonHandwriting2', 'Caveat', cursive;
+  font-weight: 400;
 }

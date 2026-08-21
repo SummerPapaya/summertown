@@ -1,15 +1,19 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ArrowRight, Pin } from 'lucide-react';
+import { toast } from 'sonner';
 import { LANDMARKS } from '@/lib/landmarks';
+import { trpc } from '@/providers/trpc';
+import { useLanguage } from '@/lib/i18n';
 
 gsap.registerPlugin(ScrollTrigger);
 
 /* ================= Section 6 — Field Notes ================= */
 export function FieldNotes({ onOpen }: { onOpen: (id: string) => void }) {
+  const { t } = useLanguage();
   const rowRef = useRef<HTMLDivElement>(null);
   const hovering = useRef(false);
 
@@ -35,13 +39,13 @@ export function FieldNotes({ onOpen }: { onOpen: (id: string) => void }) {
   return (
     <section className="relative mx-auto max-w-[1200px] px-6 py-24">
       <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-coral">
-        Field notes
+        {t('home.fieldNotes.kicker')}
       </p>
       <div className="mt-2 flex flex-wrap items-end gap-4">
         <h2 className="font-display text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[1.05] text-ink">
-          Every door has a story
+          {t('home.fieldNotes.title')}
         </h2>
-        <p className="font-hand text-2xl text-ink-soft">(fourteen of them, last we counted)</p>
+        <p className="font-hand text-2xl text-ink-soft">{t('home.fieldNotes.hand')}</p>
       </div>
 
       <div
@@ -84,10 +88,10 @@ export function FieldNotes({ onOpen }: { onOpen: (id: string) => void }) {
             </div>
             <div className="mt-3 px-1 pb-1">
               <div className="font-display text-[0.98rem] font-semibold leading-tight text-ink">
-                {lm.name}
+                {t(lm.nameKey)}
               </div>
               <span className="mt-1.5 inline-block rounded-full bg-white/70 px-2.5 py-0.5 text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-ink-soft">
-                {lm.chip}
+                {t(lm.chipKey)}
               </span>
             </div>
           </motion.button>
@@ -99,6 +103,7 @@ export function FieldNotes({ onOpen }: { onOpen: (id: string) => void }) {
 
 /* ================= Section 7 — Golden Hour banner ================= */
 export function GoldenHour() {
+  const { t } = useLanguage();
   const wrapRef = useRef<HTMLDivElement>(null);
   const sunRef = useRef<HTMLDivElement>(null);
   const gullsRef = useRef<HTMLDivElement>(null);
@@ -189,7 +194,7 @@ export function GoldenHour() {
             transition={{ duration: 0.7, ease: [0.22, 1.2, 0.36, 1] }}
             className="font-display text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[1.08] text-ink"
           >
-            The best seat in town is at the end of the pier.
+            {t('home.goldenHour.title')}
           </motion.h2>
           <motion.p
             initial={{ y: 30, opacity: 0 }}
@@ -198,7 +203,7 @@ export function GoldenHour() {
             transition={{ delay: 0.15, duration: 0.6, ease: [0.22, 1.2, 0.36, 1] }}
             className="mx-auto mt-4 max-w-xl text-lg font-semibold text-ink/80"
           >
-            Cross the planks to Windbell Isle — ring the bells, applaud the sunset, wave at the lighthouse keeper.
+            {t('home.goldenHour.body')}
           </motion.p>
           <motion.div
             initial={{ y: 30, opacity: 0 }}
@@ -212,7 +217,7 @@ export function GoldenHour() {
               className="btn-primary ambient px-7 py-3.5 text-base"
               style={{ animation: 'st-match-pulse 2s ease-in-out infinite' }}
             >
-              Walk to Windbell Isle <ArrowRight className="h-4 w-4" />
+              {t('home.goldenHour.cta')} <ArrowRight className="h-4 w-4" />
             </Link>
           </motion.div>
         </div>
@@ -223,27 +228,13 @@ export function GoldenHour() {
 
 /* ================= Section 8 — Bulletin Board ================= */
 const NOTES = [
-  {
-    title: 'Summer FM',
-    body: 'Requests night Thursday! Bring a song, leave with a friend.',
-    rotate: -3,
-    accent: '#F4B942',
-  },
-  {
-    title: 'Seashell Theater',
-    body: "Auditions for 'The Tide & The Moon' — no experience, much enthusiasm.",
-    rotate: 2,
-    accent: '#FF9B9B',
-  },
-  {
-    title: 'Lost & Found',
-    body: "One mysterious key found. (The store would like it known they have one too. It's a whole thing.)",
-    rotate: -1.5,
-    accent: '#8FD3A8',
-  },
+  { titleKey: 'home.bulletin.notes.0.title', bodyKey: 'home.bulletin.notes.0.body', rotate: -3, accent: '#F4B942' },
+  { titleKey: 'home.bulletin.notes.1.title', bodyKey: 'home.bulletin.notes.1.body', rotate: 2, accent: '#FF9B9B' },
+  { titleKey: 'home.bulletin.notes.2.title', bodyKey: 'home.bulletin.notes.2.body', rotate: -1.5, accent: '#8FD3A8' },
 ];
 
 export function BulletinBoard() {
+  const { t } = useLanguage();
   return (
     <section className="mx-auto max-w-[1200px] px-6 py-24">
       <div className="relative rounded-[32px] border-[3px] border-white bg-sand p-8 shadow-sticker md:p-12">
@@ -254,12 +245,12 @@ export function BulletinBoard() {
           ),
         )}
         <h2 className="text-center font-display text-[clamp(2rem,4vw,3.5rem)] font-semibold text-ink">
-          Pinned to the board
+          {t('home.bulletin.title')}
         </h2>
         <div className="mt-10 grid gap-6 md:grid-cols-3">
           {NOTES.map((n, i) => (
             <motion.div
-              key={n.title}
+              key={n.titleKey}
               initial={{ y: -40, rotate: 10, opacity: 0 }}
               whileInView={{ y: 0, rotate: n.rotate, opacity: 1 }}
               viewport={{ once: true, amount: 0.3 }}
@@ -279,14 +270,14 @@ export function BulletinBoard() {
               >
                 <Pin className="h-3.5 w-3.5 text-ink" />
               </span>
-              <h3 className="font-display text-lg font-semibold text-ink">{n.title}</h3>
-              <p className="mt-2 font-hand text-xl leading-snug text-ink-soft">{n.body}</p>
+              <h3 className="font-display text-lg font-semibold text-ink">{t(n.titleKey)}</h3>
+              <p className="mt-2 font-hand text-xl leading-snug text-ink-soft">{t(n.bodyKey)}</p>
             </motion.div>
           ))}
         </div>
         <div className="mt-10 text-center">
           <Link to="/journal" className="btn-secondary px-6 py-3">
-            Read the Journal →
+            {t('home.bulletin.readJournal')}
           </Link>
         </div>
       </div>
@@ -295,9 +286,78 @@ export function BulletinBoard() {
 }
 
 /* ================= Section 9 — Summer Pledge ================= */
-const PLEDGE_ITEMS = ['greet the cats', 'return library shells', 'applaud the sunset'];
+const PLEDGE_ITEM_KEYS = ['home.pledge.items.0', 'home.pledge.items.1', 'home.pledge.items.2'];
+
+/* Live footprint counter. Renders nothing when the backend is unreachable
+   (e.g. the static GitHub Pages build), so the pledge stays clean. */
+function Footprints() {
+  const { t } = useLanguage();
+  const [bump, setBump] = useState<number | null>(null);
+  const [pops, setPops] = useState<number[]>([]);
+  const footprints = trpc.town.getFootprints.useQuery(undefined, { retry: false });
+  const addFootprint = trpc.town.addFootprint.useMutation();
+
+  const count = bump ?? footprints.data?.count ?? null;
+  if (footprints.isError || count === null) return null;
+
+  const leaveFootprint = () => {
+    addFootprint.mutate(undefined, {
+      onSuccess: (data) => {
+        if (data.added) {
+          setBump(data.count);
+          const id = Date.now();
+          setPops((p) => [...p, id]);
+          window.setTimeout(() => setPops((p) => p.filter((x) => x !== id)), 900);
+        } else {
+          toast(t('home.footprints.alreadyToday'));
+        }
+      },
+      onError: () => undefined, // static build: stay quiet
+    });
+  };
+
+  return (
+    <motion.div
+      initial={{ y: 20, opacity: 0 }}
+      whileInView={{ y: 0, opacity: 1 }}
+      viewport={{ once: true, amount: 0.6 }}
+      transition={{ delay: 0.8, duration: 0.5, ease: [0.22, 1.2, 0.36, 1] }}
+      className="mt-10 flex flex-col items-center gap-2"
+    >
+      <div className="relative">
+        <button
+          type="button"
+          onClick={leaveFootprint}
+          disabled={addFootprint.isPending}
+          className="btn-primary px-6 py-3 font-hand text-2xl"
+        >
+          {t('home.footprints.button')}
+        </button>
+        <AnimatePresence>
+          {pops.map((id) => (
+            <motion.span
+              key={id}
+              initial={{ scale: 0, y: 0, opacity: 1, rotate: -12 }}
+              animate={{ scale: 1.6, y: -46, opacity: 0, rotate: 10 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+              className="pointer-events-none absolute -top-2 left-1/2 text-2xl"
+              aria-hidden
+            >
+              🐾
+            </motion.span>
+          ))}
+        </AnimatePresence>
+      </div>
+      <p className="font-hand text-2xl text-ink-soft">
+        {t('home.footprints.count', { n: count.toLocaleString() })}
+      </p>
+    </motion.div>
+  );
+}
 
 export function Pledge() {
+  const { t } = useLanguage();
   return (
     <section className="mx-auto max-w-[720px] px-6 pb-28 pt-8 text-center">
       <motion.p
@@ -307,12 +367,12 @@ export function Pledge() {
         transition={{ duration: 0.6, ease: [0.22, 1.2, 0.36, 1] }}
         className="font-hand text-[clamp(1.8rem,4vw,2.6rem)] leading-snug text-ink"
       >
-        “Leave only footprints, take only postcards.”
+        {t('home.pledge.quote')}
       </motion.p>
       <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
-        {PLEDGE_ITEMS.map((text, i) => (
+        {PLEDGE_ITEM_KEYS.map((key, i) => (
           <motion.div
-            key={text}
+            key={key}
             initial={{ x: -12, opacity: 0 }}
             whileInView={{ x: 0, opacity: 1 }}
             viewport={{ once: true, amount: 0.6 }}
@@ -334,10 +394,11 @@ export function Pledge() {
                 transition={{ delay: 0.2 + i * 0.25, duration: 0.4 }}
               />
             </svg>
-            <span className="text-sm font-extrabold text-ink">{text}</span>
+            <span className="text-sm font-extrabold text-ink">{t(key)}</span>
           </motion.div>
         ))}
       </div>
+      <Footprints />
     </section>
   );
 }

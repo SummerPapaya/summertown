@@ -5,22 +5,24 @@ import { ArrowUpRight } from 'lucide-react';
 import { FILTERS, LANDMARKS } from '@/lib/landmarks';
 import type { FilterId, Landmark } from '@/lib/landmarks';
 import { useTown } from '@/lib/town';
+import { useLanguage } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { EASE_BACK_156, EASE_SQUASH } from './presets';
 import { ArrowDoodle, CollectedStamp, TapeStrip } from './bits';
 
-/** journal.md chip labels (FILTERS ids come from landmarks.ts) */
-const CHIP_LABEL: Record<FilterId, string> = {
-  all: 'All',
-  culture: 'Culture',
-  food: 'Food & Goods',
-  stay: 'Stay',
-  magic: 'Magic',
-  isle: 'Isle',
+/** journal chip labels (FILTERS ids come from landmarks.ts) */
+const CHIP_KEY: Record<FilterId, string> = {
+  all: 'journal.passport.chips.all',
+  culture: 'journal.passport.chips.culture',
+  food: 'journal.passport.chips.food',
+  stay: 'journal.passport.chips.stay',
+  magic: 'journal.passport.chips.magic',
+  isle: 'journal.passport.chips.isle',
 };
 
 export default function Passport() {
   const { stamps } = useTown();
+  const { t } = useLanguage();
   const reduced = useReducedMotion();
   const [filter, setFilter] = useState<FilterId>('all');
 
@@ -30,7 +32,7 @@ export default function Passport() {
   return (
     <section className="relative" aria-labelledby="passport-title">
       <h2 id="passport-title" className="sr-only">
-        The Passport — landmark index
+        {t('journal.passport.srTitle')}
       </h2>
 
       {/* sticky toolbar under the navbar */}
@@ -40,7 +42,7 @@ export default function Passport() {
           <div
             className="no-scrollbar flex flex-1 items-center gap-2 overflow-x-auto"
             role="group"
-            aria-label="Filter landmarks"
+            aria-label={t('journal.passport.filterAria')}
           >
             {FILTERS.map((f) => {
               const active = filter === f.id;
@@ -58,7 +60,7 @@ export default function Passport() {
                   )}
                   style={active ? { background: f.accent } : undefined}
                 >
-                  {CHIP_LABEL[f.id]}
+                  {t(CHIP_KEY[f.id])}
                 </button>
               );
             })}
@@ -68,10 +70,10 @@ export default function Passport() {
           <div className="flex shrink-0 items-center gap-2.5">
             <div className="hidden text-right sm:block">
               <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.14em] text-ink">
-                {n}/14 collected
+                {t('journal.passport.collected', { n })}
               </p>
               <p className="font-hand text-lg leading-[1.1] text-ink-soft">
-                collect them all, we dare you
+                {t('journal.passport.dareYou')}
               </p>
             </div>
             <PassportBadge n={n} />
@@ -87,7 +89,7 @@ export default function Passport() {
             className="pointer-events-none mx-auto mt-2 flex max-w-[1200px] items-center gap-1 pl-4"
           >
             <span className="font-hand text-xl text-ink-soft">
-              no stamps yet — the map is right there 👆
+              {t('journal.passport.noStamps')}
             </span>
             <ArrowDoodle className="-mt-1" />
           </motion.div>
@@ -117,7 +119,9 @@ export default function Passport() {
 
 /* ---------- circular n/14 passport badge ---------- */
 function PassportBadge({ n }: { n: number }) {
+  const { t } = useLanguage();
   const done = n >= 14;
+  const label = t('journal.passport.badgeAria', { n });
   return (
     <motion.div
       key={n}
@@ -126,8 +130,8 @@ function PassportBadge({ n }: { n: number }) {
       transition={{ duration: 0.45, ease: EASE_BACK_156 }}
       className="relative flex h-16 w-16 items-center justify-center rounded-full border-[3px] bg-paper"
       style={{ borderColor: done ? '#8FD3A8' : '#FF9B9B' }}
-      title={`${n} of 14 stamps collected`}
-      aria-label={`${n} of 14 stamps collected`}
+      title={label}
+      aria-label={label}
       role="img"
     >
       <span className="absolute inset-[5px] rounded-full border-2 border-dashed border-ink/15" />
@@ -153,6 +157,7 @@ function PassportCard({
   collected: boolean;
   reduced: boolean;
 }) {
+  const { t } = useLanguage();
   const num = `#${String(index + 1).padStart(2, '0')}`;
   return (
     <motion.article
@@ -177,7 +182,7 @@ function PassportCard({
       <div className="relative aspect-[16/10] overflow-hidden rounded-[18px] bg-lilac/40">
         <img
           src={lm.scene}
-          alt={`${lm.name} scene`}
+          alt={t('detail.sceneAlt', { name: t(lm.nameKey) })}
           loading="lazy"
           onError={(e) => {
             const t = e.currentTarget;
@@ -188,7 +193,7 @@ function PassportCard({
         {/* category chip */}
         <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full border-2 border-white bg-[rgba(255,249,239,0.9)] px-2.5 py-1 text-[0.62rem] font-extrabold uppercase tracking-[0.12em] text-ink shadow-sm">
           <span className="h-2 w-2 rounded-full" style={{ background: lm.accent }} />
-          {CHIP_LABEL[lm.filter]}
+          {t(CHIP_KEY[lm.filter])}
         </span>
         {/* collected stamp — rubber-stamp slam */}
         {collected && (
@@ -206,9 +211,9 @@ function PassportCard({
       {/* name + tagline */}
       <div className="px-1.5 pb-1.5 pt-3.5">
         <h3 className="font-display text-[clamp(1.2rem,1.6vw,1.45rem)] font-semibold leading-[1.15] text-ink">
-          {lm.name}
+          {t(lm.nameKey)}
         </h3>
-        <p className="mt-1 font-hand text-[1.3rem] leading-[1.2] text-ink-soft">{lm.tagline}</p>
+        <p className="mt-1 font-hand text-[1.3rem] leading-[1.2] text-ink-soft">{t(lm.taglineKey)}</p>
 
         {/* bottom row */}
         <div className="mt-3.5 flex items-center justify-between gap-2">
@@ -217,7 +222,7 @@ function PassportCard({
             className="inline-flex items-center gap-1.5 rounded-full border-[3px] border-white px-4 py-2 text-[0.78rem] font-extrabold text-ink shadow-pop transition-all duration-300 ease-squash hover:-translate-y-0.5 hover:scale-105 active:translate-y-0.5"
             style={{ background: lm.accent }}
           >
-            Open on map
+            {t('journal.passport.openOnMap')}
             <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
           <span className="rounded-full bg-ink/[0.06] px-2.5 py-1 font-display text-[0.72rem] font-semibold tracking-[0.08em] text-ink-soft">

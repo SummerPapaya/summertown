@@ -45,6 +45,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import type { Landmark } from '@/lib/landmarks';
 import { useTown } from '@/lib/town';
+import { useLanguage, enText } from '@/lib/i18n';
 
 const FACT_ICONS: Record<string, LucideIcon> = {
   clock: Clock,
@@ -92,6 +93,8 @@ interface DetailCardProps {
 
 export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCardProps) {
   const { stamps, collectStamp } = useTown();
+  const { t } = useLanguage();
+  const name = t(lm.nameKey);
   const [justStamped, setJustStamped] = useState(false);
   const stamped = stamps.includes(lm.id);
 
@@ -111,8 +114,8 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
     const added = collectStamp(lm.id);
     if (added) {
       setJustStamped(true);
-      toast(`Stamped! ${stamps.length + 1} of 14.`, {
-        description: `${lm.name} is now in your passport.`,
+      toast(t('detail.stampToast', { n: stamps.length + 1 }), {
+        description: t('detail.stampToastDesc', { name }),
       });
     }
   };
@@ -126,12 +129,12 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
       transition={{ duration: 0.3 }}
       role="dialog"
       aria-modal="true"
-      aria-label={`${lm.name} details`}
+      aria-label={t('detail.detailsAria', { name })}
     >
       {/* cream veil — click to close */}
       <button
         type="button"
-        aria-label="Back to map"
+        aria-label={t('detail.backToMap')}
         onClick={onClose}
         className="fixed inset-0 bg-cream/25 backdrop-blur-[1px]"
       />
@@ -156,7 +159,7 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close details"
+          aria-label={t('detail.closeDetails')}
           className="absolute right-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-white bg-paper text-ink shadow-sticker transition-transform duration-300 ease-squash hover:rotate-90 hover:scale-110"
         >
           <X className="h-4 w-4" />
@@ -168,7 +171,7 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
             <motion.img
               key={lm.scene}
               src={lm.scene}
-              alt={`${lm.name} scene`}
+              alt={t('detail.sceneAlt', { name })}
               initial={{ scale: 1.08 }}
               animate={{ scale: 1 }}
               transition={{ duration: 1.2, ease: 'easeOut' }}
@@ -183,7 +186,9 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
               className="absolute left-4 top-4 bg-butter/80 px-3 py-1 shadow-sm"
               style={{ transform: 'rotate(-4deg)' }}
             >
-              <span className="font-hand text-lg text-ink">{lm.whisper}</span>
+              <span lang="en" className="font-hand text-lg text-ink">
+                {enText(lm.whisperKey)}
+              </span>
             </div>
             {/* permanent mini-stamp when collected */}
             {stamped && <MiniStamp />}
@@ -205,7 +210,7 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
                 className="inline-flex items-center gap-2 rounded-full border-2 border-white bg-white/60 px-3 py-1 text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-ink"
               >
                 <span className="h-2.5 w-2.5 rounded-full" style={{ background: lm.accent }} />
-                {lm.chip}
+                {t(lm.chipKey)}
               </span>
             </motion.div>
 
@@ -213,20 +218,20 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
               variants={item}
               className="mt-3 font-display text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[1.05] tracking-[-0.01em] text-ink"
             >
-              {lm.name}
+              {name}
             </motion.h2>
 
             <motion.p variants={item} className="mt-1 font-hand text-[clamp(1.4rem,2vw,1.75rem)] text-ink-soft">
-              {lm.tagline}
+              {t(lm.taglineKey)}
             </motion.p>
 
             <motion.p variants={item} className="mt-4 text-[1.02rem] font-semibold leading-[1.65] text-ink/90">
-              {lm.lore}
+              {t(lm.loreKey)}
             </motion.p>
 
             <motion.div variants={item} className="mt-5">
               <h3 className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-ink-soft">
-                Three small things
+                {t('detail.threeThings')}
               </h3>
               <ul className="mt-2 space-y-2">
                 {lm.facts.map((f, i) => {
@@ -245,7 +250,7 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
                       >
                         <Icon className="h-4 w-4" />
                       </span>
-                      {f.text}
+                      {t(f.textKey)}
                     </motion.li>
                   );
                 })}
@@ -259,7 +264,7 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
                   <div className="flex items-center gap-2 border-b-2 border-dashed border-ink/10 px-4 py-2.5">
                     <Podcast className="h-4 w-4 text-coral" />
                     <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-ink-soft">
-                      {lm.id === 'radio' ? 'Summer FM podcast' : 'Windbell Isle podcast'}
+                      {t(lm.id === 'radio' ? 'detail.podcastRadio' : 'detail.podcastIsle')}
                     </span>
                     <a
                       href={lm.id === 'radio' ? 'https://www.xiaoyuzhoufm.com/podcast/6553548956431ed02df2c1c4' : 'https://www.xiaoyuzhoufm.com/podcast/697b5920ea396c6d6ffa2bc9'}
@@ -272,12 +277,29 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
                   </div>
                   <iframe
                     src={lm.id === 'radio' ? 'https://www.xiaoyuzhoufm.com/podcast/6553548956431ed02df2c1c4' : 'https://www.xiaoyuzhoufm.com/podcast/697b5920ea396c6d6ffa2bc9'}
-                    title={lm.id === 'radio' ? 'Summer FM podcast' : 'Windbell Isle podcast'}
+                    title={t(lm.id === 'radio' ? 'detail.podcastRadio' : 'detail.podcastIsle')}
                     className="block h-[300px] w-full"
                     loading="lazy"
                     allow="autoplay; clipboard-write"
                   />
                 </div>
+              </motion.div>
+            )}
+
+            {/* An Apple A Day album link (Apple Cottage) */}
+            {lm.id === 'apple-cottage' && (
+              <motion.div variants={item} className="mt-5">
+                <Link
+                  to="/apple-album"
+                  className="group flex items-center gap-2.5 rounded-[20px] border-[3px] border-white bg-white/60 px-4 py-3 shadow-sticker transition-all duration-300 ease-squash hover:-translate-y-0.5 hover:bg-white/80"
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-white bg-coral/30">
+                    <Apple className="h-4 w-4 text-coral" />
+                  </span>
+                  <span className="font-display text-sm font-semibold text-ink transition-transform duration-300 ease-squash group-hover:scale-[1.02]">
+                    {t('detail.appleAlbum')}
+                  </span>
+                </Link>
               </motion.div>
             )}
 
@@ -291,17 +313,17 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
                 style={stamped ? { background: 'var(--leaf)' } : undefined}
               >
                 <Stamp className="h-4 w-4" />
-                {stamped ? 'Stamped!' : 'Collect stamp'}
+                {stamped ? t('detail.stamped') : t('detail.collectStamp')}
               </button>
               <button type="button" onClick={onNext} className="btn-secondary px-5 py-2.5 text-sm">
-                Next landmark →
+                {t('detail.next')}
               </button>
               <button type="button" onClick={onClose} className="btn-secondary px-5 py-2.5 text-sm">
-                Back to map
+                {t('detail.backToMap')}
               </button>
               {lm.id === 'windbell-isle' && (
                 <Link to="/windbell-isle" className="btn-primary px-5 py-2.5 text-sm" style={{ background: 'var(--butter)', color: 'var(--ink)' }}>
-                  Cross the pier →
+                  {t('detail.crossPier')}
                 </Link>
               )}
             </motion.div>

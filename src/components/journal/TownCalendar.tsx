@@ -1,34 +1,15 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { CalendarDays, Wind } from 'lucide-react';
+import { useLanguage } from '@/lib/i18n';
 import { EASE_BACK_2, EASE_SQUASH } from './presets';
 import { PaperNote } from './bits';
 import { cn } from '@/lib/utils';
 
 const EVENTS = [
-  {
-    when: 'Thursdays',
-    title: 'Summer FM Requests Night',
-    body: 'Call in, walk in, or flap in. 105.5, 7pm. Sunny takes all requests, plays about half.',
-    rotate: -2.5,
-    pin: '#F4B942',
-  },
-  {
-    when: 'Fridays',
-    title: 'Seashell Theater by Candlelight',
-    body: "This month: 'The Tide & The Moon'. Free with a cushion; cushions available at the store (aisle 3).",
-    rotate: 1.5,
-    pin: '#FF9B9B',
-  },
-  {
-    when: 'June 1st',
-    title: 'The Great Paper Boat Launch',
-    body: "The Design Lab's fleet sets sail from the Long Pier at noon. Last year a boat made it to the isle twice. Nobody knows how.",
-    rotate: -1,
-    pin: '#5EC2BC',
-  },
+  { whenKey: 'journal.calendar.events.0.when', titleKey: 'journal.calendar.events.0.title', bodyKey: 'journal.calendar.events.0.body', rotate: -2.5, pin: '#F4B942' },
+  { whenKey: 'journal.calendar.events.1.when', titleKey: 'journal.calendar.events.1.title', bodyKey: 'journal.calendar.events.1.body', rotate: 1.5, pin: '#FF9B9B' },
+  { whenKey: 'journal.calendar.events.2.when', titleKey: 'journal.calendar.events.2.title', bodyKey: 'journal.calendar.events.2.body', rotate: -1, pin: '#5EC2BC' },
 ];
-
-const WEEKDAY = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 interface DayPill {
   date: Date;
@@ -58,6 +39,7 @@ function buildWeek(): DayPill[] {
 
 export default function TownCalendar() {
   const reduced = useReducedMotion();
+  const { t } = useLanguage();
   const week = buildWeek();
 
   return (
@@ -72,20 +54,20 @@ export default function TownCalendar() {
             transition={{ duration: 0.6, ease: EASE_SQUASH }}
           >
             <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-coral">
-              Town calendar
+              {t('journal.calendar.kicker')}
             </p>
             <h2
               id="calendar-title"
               className="mt-2 font-display text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[1.05] text-ink"
             >
-              Pinned to the board
+              {t('journal.calendar.title')}
             </h2>
           </motion.div>
 
           <div className="mt-9 space-y-7">
             {EVENTS.map((e, i) => (
               <motion.div
-                key={e.title}
+                key={e.titleKey}
                 initial={reduced ? { opacity: 0 } : { y: -50, rotate: e.rotate + 10, opacity: 0 }}
                 whileInView={reduced ? { opacity: 1 } : { y: 0, rotate: e.rotate, opacity: 1 }}
                 viewport={{ once: true, amount: 0.4 }}
@@ -103,13 +85,13 @@ export default function TownCalendar() {
                       className="rounded-full px-2.5 py-0.5 text-[0.66rem] font-extrabold uppercase tracking-[0.14em] text-ink"
                       style={{ background: `${e.pin}66` }}
                     >
-                      {e.when}
+                      {t(e.whenKey)}
                     </span>
                     <h3 className="font-display text-[1.2rem] font-semibold leading-tight text-ink">
-                      {e.title}
+                      {t(e.titleKey)}
                     </h3>
                   </div>
-                  <p className="mt-2.5 font-hand text-[1.35rem] leading-[1.25] text-ink-soft">{e.body}</p>
+                  <p className="mt-2.5 font-hand text-[1.35rem] leading-[1.25] text-ink-soft">{t(e.bodyKey)}</p>
                 </PaperNote>
               </motion.div>
             ))}
@@ -129,7 +111,7 @@ export default function TownCalendar() {
               <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-lagoon/60 text-ink">
                 <CalendarDays className="h-4 w-4" />
               </span>
-              <h3 className="font-display text-xl font-semibold text-ink">This week at a glance</h3>
+              <h3 className="font-display text-xl font-semibold text-ink">{t('journal.calendar.glance')}</h3>
             </div>
 
             {/* 7 day-pills */}
@@ -154,7 +136,7 @@ export default function TownCalendar() {
                     />
                   )}
                   <span className="text-[0.58rem] font-extrabold uppercase tracking-[0.1em] text-ink-soft">
-                    {WEEKDAY[i]}
+                    {t(`journal.calendar.weekdays.${i}`)}
                   </span>
                   <span className="font-display text-base font-semibold leading-none text-ink">
                     {d.date.getDate()}
@@ -174,11 +156,11 @@ export default function TownCalendar() {
 
             <p className="mt-4 text-[0.7rem] font-bold uppercase tracking-[0.12em] text-ink-soft">
               <span className="mr-2 inline-block h-2 w-2 rounded-full" style={{ background: '#F4B942' }} />
-              Thu · requests
+              {t('journal.calendar.legendThu')}
               <span className="mx-2 inline-block h-2 w-2 rounded-full" style={{ background: '#FF9B9B' }} />
-              Fri · theater
+              {t('journal.calendar.legendFri')}
               <span className="mx-2 inline-block h-2 w-2 rounded-full" style={{ background: '#5EC2BC' }} />
-              Jun 1 · boats
+              {t('journal.calendar.legendJun')}
             </p>
 
             {/* weather doodle */}
@@ -187,7 +169,7 @@ export default function TownCalendar() {
                 <Wind className="h-6 w-6" />
               </span>
               <p className="font-hand text-[1.35rem] leading-[1.1] text-ink">
-                forecast: breezy, bell-adjacent
+                {t('journal.calendar.forecast')}
               </p>
             </div>
           </div>

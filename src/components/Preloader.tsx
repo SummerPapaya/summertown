@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '@/lib/i18n';
 
 const LETTERS = ['S', 'U', 'M', 'M', 'E', 'R'];
 
@@ -8,6 +9,7 @@ const LETTERS = ['S', 'U', 'M', 'M', 'E', 'R'];
  * Wave line draws itself; logo bobs; whole loader exits upward.
  */
 export default function Preloader() {
+  const { t } = useLanguage();
   const [show, setShow] = useState(() => {
     try {
       return !sessionStorage.getItem('st-loaded');
@@ -74,7 +76,7 @@ export default function Preloader() {
               </motion.span>
             ))}
           </div>
-          <p className="mt-2 font-hand text-2xl text-ink-soft">the ferry is almost there…</p>
+          <p className="mt-2 font-hand text-2xl text-ink-soft">{t('preloader.tagline')}</p>
         </motion.div>
       )}
     </AnimatePresence>

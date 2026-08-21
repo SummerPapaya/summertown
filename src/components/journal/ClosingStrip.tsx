@@ -1,22 +1,23 @@
 import { Link } from 'react-router';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
+import { useLanguage } from '@/lib/i18n';
 import { EASE_BACK_156, EASE_SQUASH } from './presets';
 import { PaperBoat } from './bits';
 
-const LINE = 'The map knows the way back.'.split(' ');
-
 export default function ClosingStrip() {
   const reduced = useReducedMotion();
+  const { t } = useLanguage();
+  const line = t('journal.closing.line').split(' ');
 
   return (
     <section className="relative overflow-hidden px-6 pb-28 pt-10 text-center">
       {/* big handwritten line — word rise */}
       <p
         className="flex flex-wrap justify-center gap-x-[0.35em] font-hand text-[clamp(2rem,5vw,3.4rem)] font-bold leading-[1.15] text-ink"
-        aria-label="The map knows the way back."
+        aria-label={t('journal.closing.line')}
       >
-        {LINE.map((w, i) => (
+        {line.map((w, i) => (
           <motion.span
             key={i}
             aria-hidden
@@ -40,7 +41,7 @@ export default function ClosingStrip() {
           transition={{ delay: 0.35, duration: 0.5, ease: EASE_BACK_156 }}
         >
           <Link to="/" className="btn-primary text-base">
-            Return to the map
+            {t('journal.closing.returnMap')}
             <ArrowRight className="h-4 w-4" />
           </Link>
         </motion.div>
@@ -51,7 +52,7 @@ export default function ClosingStrip() {
           transition={{ delay: 0.45, duration: 0.5, ease: EASE_BACK_156 }}
         >
           <Link to="/visit" className="btn-secondary text-base">
-            Plan your visit
+            {t('journal.closing.planVisit')}
           </Link>
         </motion.div>
       </div>

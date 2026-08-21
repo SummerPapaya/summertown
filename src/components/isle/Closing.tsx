@@ -5,6 +5,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ArrowRight, Stamp } from 'lucide-react';
 import { useTown } from '@/lib/town';
+import { useLanguage, enText } from '@/lib/i18n';
 import { playChime } from '@/lib/sound';
 import { byId } from '@/lib/landmarks';
 import { WordRise } from './shared';
@@ -22,6 +23,7 @@ const MINIS = ['apple-cottage', 'magic-house', 'radio'];
 export default function Closing() {
   const reduced = usePrefersReducedMotion();
   const { soundOn } = useTown();
+  const { t } = useLanguage();
   const soundRef = useRef(soundOn);
   useEffect(() => {
     soundRef.current = soundOn;
@@ -53,7 +55,7 @@ export default function Closing() {
   return (
     <section
       ref={sectionRef}
-      aria-label="When the bells ring"
+      aria-label={t('isle.closing.sectionAria')}
       className="relative overflow-hidden px-6 py-28 md:py-36"
     >
       {/* screen-crossing windbell ripple */}
@@ -68,14 +70,14 @@ export default function Closing() {
 
       <div className="relative mx-auto max-w-[760px] text-center">
         <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-butter">
-          winddown
+          {t('isle.closing.kicker')}
         </p>
         <h2
           className="mt-4 font-hand text-[clamp(2.1rem,5.2vw,3.9rem)] font-medium leading-[1.2] text-cream"
           style={{ textShadow: '0 3px 0 rgba(54,48,92,0.5)' }}
         >
           <WordRise
-            text="When the bells ring by themselves, someone is on their way home."
+            text={t('isle.closing.quote')}
             stagger={0.04}
           />
         </h2>
@@ -89,7 +91,7 @@ export default function Closing() {
           >
             <Link to="/?place=windbell-isle" className="btn-primary">
               <Stamp className="h-4 w-4" aria-hidden />
-              Get your map stamped
+              {t('isle.closing.stampCta')}
             </Link>
           </motion.div>
           <motion.div
@@ -99,13 +101,13 @@ export default function Closing() {
             transition={{ duration: 0.5, delay: 0.1, ease: BACK_OUT }}
           >
             <Link to="/journal" className="btn-secondary">
-              Pin it to the Journal
+              {t('isle.closing.journalCta')}
               <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
           </motion.div>
         </div>
 
-        <p className="mt-12 font-hand text-2xl text-lilac">three more doors for next time —</p>
+        <p className="mt-12 font-hand text-2xl text-lilac">{t('isle.closing.moreDoors')}</p>
         <div className="mt-5 flex flex-wrap items-stretch justify-center gap-5">
           {MINIS.map((id, i) => {
             const lm = byId(id)!;
@@ -140,10 +142,10 @@ export default function Closing() {
                   </div>
                   <div className="mt-2.5 px-1 pb-1">
                     <div className="font-display text-[0.95rem] font-semibold leading-tight text-ink">
-                      {lm.name}
+                      {t(lm.nameKey)}
                     </div>
-                    <div className="mt-1 font-hand text-lg leading-none text-ink-soft">
-                      {lm.whisper}
+                    <div lang="en" className="mt-1 font-hand text-lg leading-none text-ink-soft">
+                      {enText(lm.whisperKey)}
                     </div>
                   </div>
                 </Link>

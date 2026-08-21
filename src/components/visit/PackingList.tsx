@@ -4,15 +4,16 @@ import { toast } from 'sonner';
 import { KeyRound } from 'lucide-react';
 import { SQUASH, Words } from './anim';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/lib/i18n';
 
-const ITEMS: { id: string; label: string; aside: string | null }[] = [
-  { id: 'cushion', label: 'Cushion', aside: 'theater & sunsets' },
-  { id: 'seashell', label: 'One pretty seashell', aside: 'library insurance' },
-  { id: 'kite', label: 'Kite string', aside: 'the store sells the wind' },
-  { id: 'song', label: 'A song request', aside: null },
-  { id: 'pie', label: 'Appetite for pie', aside: '4pm sharp' },
-  { id: 'blanket', label: 'Blanket', aside: 'for bell-listening' },
-  { id: 'key', label: 'Mysterious key', aside: 'if found, see store' },
+const ITEMS: { id: string; keyPrefix: string }[] = [
+  { id: 'cushion', keyPrefix: 'visit.packing.items.0' },
+  { id: 'seashell', keyPrefix: 'visit.packing.items.1' },
+  { id: 'kite', keyPrefix: 'visit.packing.items.2' },
+  { id: 'song', keyPrefix: 'visit.packing.items.3' },
+  { id: 'pie', keyPrefix: 'visit.packing.items.4' },
+  { id: 'blanket', keyPrefix: 'visit.packing.items.5' },
+  { id: 'key', keyPrefix: 'visit.packing.items.6' },
 ];
 
 const SCRAP_COLORS = [
@@ -70,6 +71,7 @@ function ConfettiBurst() {
 
 export default function PackingList() {
   const reduced = useReducedMotion();
+  const { t } = useLanguage();
   const [checked, setChecked] = useState<boolean[]>(() =>
     ITEMS.map((it) => it.id === 'key'),
   );
@@ -97,7 +99,7 @@ export default function PackingList() {
     }
     // 100% — mini confetti + toast
     if (next.every(Boolean)) {
-      toast('Fully packed. The ferry approves.');
+      toast(t('visit.packing.packedToast'));
       if (!reduced) setBurst((b) => b + 1);
     }
   };
@@ -106,10 +108,10 @@ export default function PackingList() {
     <section className="mx-auto max-w-[760px] px-6 py-24">
       <div className="text-center">
         <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-coral">
-          Packing list
+          {t('visit.packing.kicker')}
         </p>
         <h2 className="mt-2 font-display text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[1.05] text-ink">
-          <Words text="Pack light, pack right" />
+          <Words text={t('visit.packing.title')} />
         </h2>
 
         {/* progress bar — fills with a squashy tween */}
@@ -120,7 +122,7 @@ export default function PackingList() {
             aria-valuemin={0}
             aria-valuemax={ITEMS.length}
             aria-valuenow={count}
-            aria-label="Packing progress"
+            aria-label={t('visit.packing.progressAria')}
           >
             <motion.div
               className={cn(
@@ -134,7 +136,7 @@ export default function PackingList() {
             />
           </div>
           <p className="mt-2 font-hand text-2xl text-ink-soft" aria-hidden>
-            {count} of {ITEMS.length} packed
+            {t('visit.packing.packed', { c: count, n: ITEMS.length })}
           </p>
         </div>
       </div>
@@ -200,16 +202,16 @@ export default function PackingList() {
                       isChecked ? 'text-ink-soft line-through' : 'text-ink',
                     )}
                   >
-                    {it.label}
+                    {t(`${it.keyPrefix}.label`)}
                   </span>
-                  {it.aside && (
+                  {t(`${it.keyPrefix}.aside`) && (
                     <span
                       className={cn(
                         'ml-auto font-hand text-xl leading-none transition-colors duration-300',
                         isChecked ? 'text-ink-soft/70 line-through' : 'text-ink-soft',
                       )}
                     >
-                      ({it.aside})
+                      ({t(`${it.keyPrefix}.aside`)})
                     </span>
                   )}
 
@@ -239,8 +241,7 @@ export default function PackingList() {
         <p className="mt-4 flex items-start gap-2 border-t-2 border-dashed border-ink/10 px-3 pt-4 font-hand text-xl leading-snug text-ink-soft">
           <KeyRound className="mt-1 h-4 w-4 shrink-0" />
           <span>
-            re: the mysterious key — you&rsquo;re carrying one now. Reading this counts as
-            finding it.
+            {t('visit.packing.keyFoot')}
           </span>
         </p>
       </motion.div>
