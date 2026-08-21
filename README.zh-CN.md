@@ -111,4 +111,8 @@ React 19 · TypeScript · Vite · Tailwind CSS · Framer Motion · GSAP · Lenis
 
 - 更适合鼠标或触控板（自定义光标 + 地图手势）。
 - 声音可在导航栏开关；请自行控制音量。
-- 地图、地标切图与场景图均为本项目原创素材，未经许可请勿转用。
+
+### 许可
+
+- **源代码** 采用 [MIT License](./LICENSE) 发布。
+- **`public/` 下的视觉素材**（地图、地标、场景、logo、光标等）**不适用** MIT。其中多数借助 AI 生成；请勿在未获许可的情况下，将其作为独立素材或其他项目品牌使用。详见 [NOTICE](./NOTICE)。

@@ -1,0 +1,66 @@
+Summer Town — Visual Asset Notice
+=================================
+
+Last updated: 2026
+
+1. Scope
+--------
+
+This notice covers visual assets distributed with this project, including but
+not limited to files under `public/` such as:
+
+- Map base art and extensions (for example `map-base.png`, `map-base-ext.png`)
+- Landmark cutouts and props (for example `b-*.png`, `i-*.png`, `prop-*.png`,
+  `ferry.png`)
+- Scene / detail illustrations (for example `scene-*.png`, `isle-*.png`)
+- Brand and UI artwork (for example `logo.svg`, `cursor*.png`,
+  `cursor-boat.svg`)
+
+These assets are **not** licensed under the MIT License in `LICENSE`.
+
+2. How the assets were made
+---------------------------
+
+Many of these visuals were created with **AI image-generation tools**, then
+selected, cropped, arranged, and integrated into Summer Town by the project
+maintainer.
+
+Because copyright protection for AI-generated material varies by jurisdiction
+and often requires meaningful human authorship, this project does **not** claim
+that every asset file is fully copyrighted as a traditional hand-made work.
+
+3. What is reserved
+-------------------
+
+To the extent rights exist in:
+
+- human selection, editing, arrangement, or compositing of the assets;
+- the project's overall presentation of those assets; and/or
+- any human-authored elements mixed into them,
+
+those rights are reserved by **SummerPapaya**.
+
+4. Permission / reuse request
+-----------------------------
+
+Please treat the project's visual identity as reserved for Summer Town.
+
+You may:
+
+- view the assets as shown on the live site and in this repository;
+- fork or study the **source code** under MIT.
+
+Please do **not**, without prior permission from the maintainer:
+
+- copy or redistribute these visual assets as standalone files;
+- reuse them in other apps, games, sites, decks, or commercial products;
+- claim them as your own project branding.
+
+For permission requests, open an issue in this repository or contact the
+maintainer via GitHub.
+
+5. No warranty
+--------------
+
+Assets are provided as part of this project "as is," without warranty of any
+kind.
