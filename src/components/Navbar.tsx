@@ -59,10 +59,10 @@ export default function Navbar() {
         delay: tucked ? 0 : 0.2,
         ease: [0.22, 1.2, 0.36, 1] as [number, number, number, number],
       }}
-      className="pointer-events-none fixed inset-x-0 top-0 z-[5000] flex items-center justify-between gap-3 px-4 pt-4"
+      className="pointer-events-none fixed inset-x-0 top-0 z-[5000] grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 pt-4"
     >
       {/* left: logo pill */}
-      <Link to="/" className={cn(pill, 'pointer-events-auto px-4 py-2')}>
+      <Link to="/" className={cn(pill, 'pointer-events-auto w-fit justify-self-start px-4 py-2')}>
         <img src="/logo.svg" alt={t('nav.logoAlt')} className="h-9 w-9" />
         <span className="font-display text-lg font-semibold tracking-tight text-ink">
           {t('nav.brand')}
@@ -70,7 +70,10 @@ export default function Navbar() {
       </Link>
 
       {/* center: nav pill */}
-      <nav className={cn(pill, 'pointer-events-auto hidden px-2 py-1.5 md:flex')} aria-label={t('nav.mainNav')}>
+      <nav
+        className={cn(pill, 'pointer-events-auto hidden justify-self-center px-2 py-1.5 md:flex')}
+        aria-label={t('nav.mainNav')}
+      >
         {LINKS.map((l) => (
           <NavLink
             key={l.to}
@@ -94,7 +97,7 @@ export default function Navbar() {
       </nav>
 
       {/* right: language + time + sound pill */}
-      <div className={cn(pill, 'pointer-events-auto px-2 py-1.5')}>
+      <div className={cn(pill, 'pointer-events-auto w-fit justify-self-end px-2 py-1.5')}>
         <div role="group" aria-label={t('nav.language')} className="flex items-center gap-1 rounded-full bg-white/60 p-1">
           {LANGS.map((l) => {
             const active = lang === l.id;
