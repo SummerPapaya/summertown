@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { usePauseSmoothScroll } from '@/lib/smoothScroll';
 import { EASE_BACK_156, EASE_SQUASH } from './presets';
 import { ArrowDoodle, CollectedStamp, TapeStrip } from './bits';
 
@@ -29,7 +30,7 @@ const CHIP_KEY: Record<FilterId, string> = {
 };
 
 const PASSPORT_COVERS: { id: string; src: string; labelKey: string }[] = [
-  { id: 'map', src: '/map-base-ext.png', labelKey: 'journal.passport.covers.map' },
+  { id: 'map', src: '/map-full.png', labelKey: 'journal.passport.covers.map' },
   ...LANDMARKS.map((lm) => ({ id: lm.id, src: lm.scene, labelKey: lm.nameKey })),
 ];
 
@@ -97,7 +98,7 @@ export default function Passport() {
               <button
                 type="button"
                 onClick={() => setPassportOpen(true)}
-                className="btn-primary hidden h-11 shrink-0 whitespace-nowrap px-3 py-0 text-[0.78rem] sm:inline-flex"
+                className="btn-primary hidden h-11 shrink-0 whitespace-nowrap px-4 py-0 text-[0.8rem] sm:inline-flex"
               >
                 <Stamp className="h-4 w-4" aria-hidden />
                 {t('journal.passport.make')}
@@ -174,6 +175,7 @@ function PassportDialog({
   const [error, setError] = useState(false);
 
   const cover = PASSPORT_COVERS.find((c) => c.id === coverId) ?? PASSPORT_COVERS[0];
+  usePauseSmoothScroll(open);
 
   useEffect(() => {
     if (!open) return;
@@ -226,72 +228,77 @@ function PassportDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto rounded-[28px] border-[3px] border-white bg-paper sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="font-display text-2xl font-semibold text-ink">
-            {t('journal.passport.dialogTitle')}
-          </DialogTitle>
-          <DialogDescription className="font-hand text-xl text-ink-soft">
-            {t('journal.passport.dialogDesc')}
-          </DialogDescription>
-        </DialogHeader>
-
-        <fieldset className="mt-2">
-          <legend className="text-[0.78rem] font-extrabold uppercase tracking-[0.14em] text-ink-soft">
-            {t('journal.passport.coverLegend')}
-          </legend>
-          <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
-            {PASSPORT_COVERS.map((c) => {
-              const active = c.id === cover.id;
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setCoverId(c.id)}
-                  className={cn(
-                    'overflow-hidden rounded-2xl border-[3px] text-left transition-all duration-300 ease-squash',
-                    active
-                      ? 'scale-[1.03] border-white bg-butter shadow-pop'
-                      : 'border-ink/10 bg-white/70 hover:border-white',
-                  )}
-                >
-                  <span className="block aspect-[4/3] overflow-hidden bg-lilac/40">
-                    <img src={c.src} alt="" className="h-full w-full object-cover" />
-                  </span>
-                  <span className="block truncate px-1.5 py-1 text-[0.62rem] font-extrabold uppercase tracking-[0.06em] text-ink">
-                    {t(c.labelKey)}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
-
-        <div className="mt-4 overflow-hidden rounded-[22px] border-[3px] border-white bg-lilac/40">
-          {src && (
-            <img src={src} alt={t('journal.passport.dialogTitle')} className="block w-full" />
-          )}
-          {busy && !src && (
-            <p className="px-6 py-16 text-center font-hand text-2xl text-ink-soft">
-              {t('common.loading')}
-            </p>
-          )}
-          {error && (
-            <p className="px-6 py-16 text-center font-hand text-2xl text-coral">
-              {t('journal.passport.makeError')}
-            </p>
-          )}
-        </div>
-        <button
-          type="button"
-          disabled={!blob}
-          onClick={() => blob && downloadBlob(blob, filename)}
-          className="btn-primary mt-2 w-full disabled:translate-y-0 disabled:opacity-60"
+      <DialogContent className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden rounded-[28px] border-[3px] border-white bg-paper p-0 sm:max-w-2xl">
+        <div
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6"
+          data-lenis-prevent=""
         >
-          <Download className="h-4 w-4" aria-hidden />
-          {t('journal.passport.download')}
-        </button>
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl font-semibold text-ink">
+              {t('journal.passport.dialogTitle')}
+            </DialogTitle>
+            <DialogDescription className="font-hand text-xl text-ink-soft">
+              {t('journal.passport.dialogDesc')}
+            </DialogDescription>
+          </DialogHeader>
+
+          <fieldset className="mt-3">
+            <legend className="text-[0.78rem] font-extrabold uppercase tracking-[0.14em] text-ink-soft">
+              {t('journal.passport.coverLegend')}
+            </legend>
+            <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
+              {PASSPORT_COVERS.map((c) => {
+                const active = c.id === cover.id;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setCoverId(c.id)}
+                    className={cn(
+                      'overflow-hidden rounded-2xl border-[3px] text-left transition-all duration-300 ease-squash',
+                      active
+                        ? 'scale-[1.03] border-white bg-butter shadow-pop'
+                        : 'border-ink/10 bg-white/70 hover:border-white',
+                    )}
+                  >
+                    <span className="block aspect-[4/3] overflow-hidden bg-lilac/40">
+                      <img src={c.src} alt="" className="h-full w-full object-contain" />
+                    </span>
+                    <span className="block line-clamp-2 min-h-[2.1em] px-1 py-1 text-center text-[0.58rem] font-extrabold leading-tight tracking-[0.04em] text-ink">
+                      {t(c.labelKey)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+
+          <div className="mt-4 overflow-hidden rounded-[22px] border-[3px] border-white bg-lilac/40">
+            {src && (
+              <img src={src} alt={t('journal.passport.dialogTitle')} className="block h-auto w-full" />
+            )}
+            {busy && !src && (
+              <p className="px-6 py-16 text-center font-hand text-2xl text-ink-soft">
+                {t('common.loading')}
+              </p>
+            )}
+            {error && (
+              <p className="px-6 py-16 text-center font-hand text-2xl text-coral">
+                {t('journal.passport.makeError')}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            disabled={!blob}
+            onClick={() => blob && downloadBlob(blob, filename)}
+            className="btn-primary mt-3 w-full disabled:translate-y-0 disabled:opacity-60"
+          >
+            <Download className="h-4 w-4" aria-hidden />
+            {t('journal.passport.download')}
+          </button>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -51,18 +51,18 @@ function drawContained(
 ) {
   const ir = img.width / img.height;
   const r = w / h;
-  let sx = 0;
-  let sy = 0;
-  let sw = img.width;
-  let sh = img.height;
+  let dw = w;
+  let dh = h;
+  let dx = x;
+  let dy = y;
   if (ir > r) {
-    sw = img.height * r;
-    sx = (img.width - sw) / 2;
+    dh = w / ir;
+    dy = y + (h - dh) / 2;
   } else {
-    sh = img.width / r;
-    sy = (img.height - sh) / 2;
+    dw = h * ir;
+    dx = x + (w - dw) / 2;
   }
-  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+  ctx.drawImage(img, dx, dy, dw, dh);
 }
 
 function fitText(
@@ -102,19 +102,39 @@ function fitText(
 }
 
 export async function renderPassportImage(opts: PassportRenderOptions): Promise<Blob> {
-  const W = 1080;
-  const H = 1680;
-  const canvas = document.createElement('canvas');
-  canvas.width = W;
-  canvas.height = H;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('canvas unavailable');
-
   try {
     await document.fonts.ready;
   } catch {
     /* ignore */
   }
+
+  let cover: HTMLImageElement | null = null;
+  try {
+    cover = await loadImage(opts.coverUrl);
+  } catch {
+    cover = null;
+  }
+  let logo: HTMLImageElement | null = null;
+  try {
+    logo = await loadImage(opts.logoUrl);
+  } catch {
+    logo = null;
+  }
+
+  const W = 1080;
+  const photoW = 820;
+  const photoH = cover ? Math.round(photoW * (cover.height / cover.width)) : 460;
+  const photo = { x: 130, y: 120, w: photoW, h: photoH };
+  const titleY = photo.y + photo.h + (logo ? 116 : 48);
+  const gridY = titleY + 124;
+  const stampsH = 7 * 92;
+  const H = Math.max(1480, gridY + stampsH + 140);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('canvas unavailable');
 
   const display = opts.zh
     ? '"GBai Marker", Fredoka, "Noto Sans SC", sans-serif'
@@ -142,25 +162,17 @@ export async function renderPassportImage(opts: PassportRenderOptions): Promise<
   ctx.stroke();
   ctx.setLineDash([]);
 
-  const photo = { x: 130, y: 120, w: 820, h: 460 };
   ctx.fillStyle = '#FFFFFF';
-  roundRect(ctx, photo.x - 18, photo.y - 18, photo.w + 36, photo.h + 86, 28);
+  roundRect(ctx, photo.x - 18, photo.y - 18, photo.w + 36, photo.h + 36, 28);
   ctx.fill();
 
-  let cover: HTMLImageElement | null = null;
-  try {
-    cover = await loadImage(opts.coverUrl);
-  } catch {
-    cover = null;
-  }
   ctx.save();
   roundRect(ctx, photo.x, photo.y, photo.w, photo.h, 18);
   ctx.clip();
+  ctx.fillStyle = '#E6DDF7';
+  ctx.fillRect(photo.x, photo.y, photo.w, photo.h);
   if (cover) {
     drawContained(ctx, cover, photo.x, photo.y, photo.w, photo.h);
-  } else {
-    ctx.fillStyle = '#E6DDF7';
-    ctx.fillRect(photo.x, photo.y, photo.w, photo.h);
   }
   ctx.restore();
 
@@ -169,31 +181,24 @@ export async function renderPassportImage(opts: PassportRenderOptions): Promise<
   roundRect(ctx, photo.x, photo.y, photo.w, photo.h, 18);
   ctx.stroke();
 
-  let logo: HTMLImageElement | null = null;
-  try {
-    logo = await loadImage(opts.logoUrl);
-  } catch {
-    logo = null;
-  }
   if (logo) {
-    ctx.drawImage(logo, W / 2 - 40, photo.y + photo.h + 8, 80, 80);
+    ctx.drawImage(logo, W / 2 - 40, photo.y + photo.h + 20, 80, 80);
   }
 
   ctx.fillStyle = '#4A4470';
   ctx.textAlign = 'center';
   ctx.font = `700 58px ${display}`;
-  ctx.fillText(opts.title, W / 2, 760);
+  ctx.fillText(opts.title, W / 2, titleY);
 
   ctx.fillStyle = '#7B74A3';
   ctx.font = `600 26px ${body}`;
-  ctx.fillText(opts.visitor, W / 2, 802);
+  ctx.fillText(opts.visitor, W / 2, titleY + 42);
   ctx.font = `700 22px ${body}`;
-  ctx.fillText(opts.issued, W / 2, 836);
+  ctx.fillText(opts.issued, W / 2, titleY + 76);
 
   const cols = 2;
   const rows = 7;
   const gridX = 130;
-  const gridY = 880;
   const cellW = (W - gridX * 2) / cols;
   const cellH = 92;
 
