@@ -38,7 +38,7 @@ export default function Postcards() {
       >
         {/* ---- left: postcard signup ---- */}
         <div className="p-8 md:p-12">
-          <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-coral">
+          <p className="kicker text-coral">
             {t('visit.postcards.kicker')}
           </p>
           <h2 className="mt-2 font-display text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[1.05] text-ink">

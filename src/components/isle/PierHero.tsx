@@ -184,7 +184,7 @@ export default function PierHero() {
 
         {/* title block */}
         <div ref={titleRef} className="absolute inset-x-0 top-[15%] px-6 text-center">
-          <span className="inline-block rounded-full border-[3px] border-white bg-[rgba(255,249,239,0.85)] px-4 py-1.5 text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-ink shadow-sticker">
+          <span className="kicker inline-block rounded-full border-[3px] border-white bg-[rgba(255,249,239,0.85)] px-4 py-1.5 text-ink shadow-sticker">
             {t('isle.pierHero.badge')}
           </span>
           <h1 className="mt-5 font-display text-[clamp(2.75rem,8vw,6.5rem)] font-bold leading-[1.0] tracking-[-0.015em]">
@@ -224,7 +224,7 @@ export default function PierHero() {
             <ChevronDown className="h-7 w-7" aria-hidden />
           </span>
           <span
-            className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em]"
+            className="kicker"
             style={{ textShadow: '0 1px 0 rgba(255,255,255,0.7)' }}
           >
             {t('isle.pierHero.scrollHint')}

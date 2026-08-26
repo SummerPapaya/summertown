@@ -107,7 +107,7 @@ export default function PackingList() {
   return (
     <section className="mx-auto max-w-[760px] px-6 py-24">
       <div className="text-center">
-        <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-coral">
+        <p className="kicker text-coral">
           {t('visit.packing.kicker')}
         </p>
         <h2 className="mt-2 font-display text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[1.05] text-ink">

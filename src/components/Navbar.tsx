@@ -22,9 +22,9 @@ const TIMES: { id: TimeOfDay; icon: typeof Sun; labelKey: string }[] = [
   { id: 'starlight', icon: Moon, labelKey: 'nav.time.starlight' },
 ];
 
-const LANGS: { id: Language; label: string }[] = [
-  { id: 'en', label: 'EN' },
-  { id: 'zh', label: '中文' },
+const LANGS: { id: Language; label: string; shortLabel: string }[] = [
+  { id: 'en', label: 'EN', shortLabel: 'EN' },
+  { id: 'zh', label: '中文', shortLabel: '中' },
 ];
 
 const pill =
@@ -59,19 +59,25 @@ export default function Navbar() {
         delay: tucked ? 0 : 0.2,
         ease: [0.22, 1.2, 0.36, 1] as [number, number, number, number],
       }}
-      className="pointer-events-none fixed inset-x-0 top-0 z-[5000] grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 pt-4"
+      className="pointer-events-none fixed inset-x-0 top-0 z-[5000] grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 pt-3 sm:gap-3 sm:px-4 sm:pt-4"
     >
       {/* left: logo pill */}
-      <Link to="/" className={cn(pill, 'pointer-events-auto w-fit justify-self-start px-4 py-2')}>
-        <img src="/logo.svg" alt={t('nav.logoAlt')} className="h-9 w-9" />
-        <span className="font-display text-lg font-semibold tracking-tight text-ink">
+      <Link
+        to="/"
+        className={cn(
+          pill,
+          'pointer-events-auto col-start-1 w-fit max-w-full justify-self-start px-2.5 py-1.5 sm:px-4 sm:py-2',
+        )}
+      >
+        <img src="/logo.svg" alt={t('nav.logoAlt')} className="h-8 w-8 shrink-0 sm:h-9 sm:w-9" />
+        <span className="whitespace-nowrap font-display text-[0.95rem] font-semibold tracking-tight text-ink sm:text-lg">
           {t('nav.brand')}
         </span>
       </Link>
 
       {/* center: nav pill */}
       <nav
-        className={cn(pill, 'pointer-events-auto hidden justify-self-center px-2 py-1.5 md:flex')}
+        className={cn(pill, 'pointer-events-auto col-start-2 hidden justify-self-center px-2 py-1.5 md:flex')}
         aria-label={t('nav.mainNav')}
       >
         {LINKS.map((l) => (
@@ -97,7 +103,7 @@ export default function Navbar() {
       </nav>
 
       {/* right: language + time + sound pill */}
-      <div className={cn(pill, 'pointer-events-auto w-fit justify-self-end px-2 py-1.5')}>
+      <div className={cn(pill, 'pointer-events-auto col-start-3 w-fit justify-self-end px-2 py-1.5')}>
         <div role="group" aria-label={t('nav.language')} className="flex items-center gap-1 rounded-full bg-white/60 p-1">
           {LANGS.map((l) => {
             const active = lang === l.id;
@@ -106,13 +112,15 @@ export default function Navbar() {
                 key={l.id}
                 type="button"
                 aria-pressed={active}
+                aria-label={l.label}
                 onClick={() => setLang(l.id)}
                 className={cn(
-                  'flex h-8 items-center justify-center rounded-full px-2 text-[0.78rem] font-extrabold transition-all duration-300 ease-squash',
+                  'flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-[0.78rem] font-extrabold transition-all duration-300 ease-squash',
                   active ? 'scale-110 bg-butter text-ink shadow-sm' : 'text-ink-soft hover:scale-105 hover:bg-white',
                 )}
               >
-                {l.label}
+                <span className="md:hidden">{l.shortLabel}</span>
+                <span className="hidden md:inline">{l.label}</span>
               </button>
             );
           })}

@@ -391,7 +391,7 @@ export default function Pavilion() {
           <div className="flex flex-col justify-center">
             <motion.p
               variants={item}
-              className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-coral"
+              className="kicker text-coral"
             >
               {t('isle.pavilion.kicker')}
             </motion.p>

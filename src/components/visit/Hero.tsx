@@ -132,7 +132,7 @@ export default function Hero() {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, ease: SQUASH }}
-            className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-coral"
+            className="kicker text-coral"
           >
             {t('visit.hero.kicker')}
           </motion.p>

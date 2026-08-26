@@ -1,12 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Download, Stamp } from 'lucide-react';
 import { FILTERS, LANDMARKS } from '@/lib/landmarks';
 import type { FilterId, Landmark } from '@/lib/landmarks';
 import { useTown } from '@/lib/town';
 import { useLanguage } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import { downloadBlob, renderPassportImage } from '@/lib/passportImage';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { EASE_BACK_156, EASE_SQUASH } from './presets';
 import { ArrowDoodle, CollectedStamp, TapeStrip } from './bits';
 
@@ -28,6 +36,8 @@ export default function Passport() {
 
   const visible = LANDMARKS.filter((l) => filter === 'all' || l.filter === filter);
   const n = stamps.length;
+  const complete = n >= LANDMARKS.length;
+  const [passportOpen, setPassportOpen] = useState(false);
 
   return (
     <section className="relative" aria-labelledby="passport-title">
@@ -73,12 +83,35 @@ export default function Passport() {
                 {t('journal.passport.collected', { n })}
               </p>
               <p className="font-hand text-lg leading-[1.1] text-ink-soft">
-                {t('journal.passport.dareYou')}
+                {complete ? t('journal.passport.completeHint') : t('journal.passport.dareYou')}
               </p>
             </div>
+            {complete && (
+              <button
+                type="button"
+                onClick={() => setPassportOpen(true)}
+                className="btn-primary hidden h-11 shrink-0 px-4 py-0 text-[0.78rem] sm:inline-flex"
+              >
+                <Stamp className="h-4 w-4" aria-hidden />
+                {t('journal.passport.make')}
+              </button>
+            )}
             <PassportBadge n={n} />
           </div>
         </div>
+
+        {complete && (
+          <div className="mx-auto mt-2 max-w-[1200px] sm:hidden">
+            <button
+              type="button"
+              onClick={() => setPassportOpen(true)}
+              className="btn-primary w-full"
+            >
+              <Stamp className="h-4 w-4" aria-hidden />
+              {t('journal.passport.make')}
+            </button>
+          </div>
+        )}
 
         {/* empty-collection nudge */}
         {n === 0 && (
@@ -113,7 +146,110 @@ export default function Passport() {
           </AnimatePresence>
         </motion.div>
       </div>
+
+      <PassportDialog open={passportOpen} onOpenChange={setPassportOpen} />
     </section>
+  );
+}
+
+function PassportDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { t, lang } = useLanguage();
+  const [src, setSrc] = useState<string | null>(null);
+  const [blob, setBlob] = useState<Blob | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    const issued = new Date();
+    const dateLabel =
+      lang === 'zh'
+        ? `${issued.getFullYear()}年${issued.getMonth() + 1}月${issued.getDate()}日`
+        : issued.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+    setBusy(true);
+    setError(false);
+    setSrc(null);
+    setBlob(null);
+
+    renderPassportImage({
+      title: t('journal.passport.dialogTitle'),
+      visitor: t('journal.passport.visitor'),
+      issued: t('journal.passport.issued', { date: dateLabel }),
+      est: t('journal.passport.est'),
+      stamps: LANDMARKS.map((lm) => ({ name: t(lm.nameKey), accent: lm.accent })),
+      logoUrl: `${window.location.origin}/logo.svg`,
+      zh: lang === 'zh',
+    })
+      .then((next) => {
+        if (cancelled) return;
+        setBlob(next);
+        setSrc(URL.createObjectURL(next));
+      })
+      .catch(() => {
+        if (!cancelled) setError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setBusy(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, lang, t]);
+
+  useEffect(() => {
+    return () => {
+      if (src) URL.revokeObjectURL(src);
+    };
+  }, [src]);
+
+  const filename = lang === 'zh' ? '夏天镇护照.png' : 'summer-town-passport.png';
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto rounded-[28px] border-[3px] border-white bg-paper sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="font-display text-2xl font-semibold text-ink">
+            {t('journal.passport.dialogTitle')}
+          </DialogTitle>
+          <DialogDescription className="font-hand text-xl text-ink-soft">
+            {t('journal.passport.dialogDesc')}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="mt-4 overflow-hidden rounded-[22px] border-[3px] border-white bg-lilac/40">
+          {src && (
+            <img src={src} alt={t('journal.passport.dialogTitle')} className="block w-full" />
+          )}
+          {busy && !src && (
+            <p className="px-6 py-16 text-center font-hand text-2xl text-ink-soft">
+              {t('common.loading')}
+            </p>
+          )}
+          {error && (
+            <p className="px-6 py-16 text-center font-hand text-2xl text-coral">
+              {t('journal.passport.makeError')}
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          disabled={!blob}
+          onClick={() => blob && downloadBlob(blob, filename)}
+          className="btn-primary mt-4 w-full disabled:translate-y-0 disabled:opacity-60"
+        >
+          <Download className="h-4 w-4" aria-hidden />
+          {t('journal.passport.download')}
+        </button>
+      </DialogContent>
+    </Dialog>
   );
 }
 

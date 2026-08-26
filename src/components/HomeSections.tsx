@@ -38,7 +38,7 @@ export function FieldNotes({ onOpen }: { onOpen: (id: string) => void }) {
 
   return (
     <section className="relative mx-auto max-w-[1200px] px-6 py-24">
-      <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-coral">
+      <p className="kicker text-coral">
         {t('home.fieldNotes.kicker')}
       </p>
       <div className="mt-2 flex flex-wrap items-end gap-4">

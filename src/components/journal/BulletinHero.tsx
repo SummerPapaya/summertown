@@ -87,7 +87,7 @@ export default function BulletinHero() {
           initial={{ y: 24, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.25, duration: 0.6, ease: EASE_SQUASH }}
-          className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-coral"
+          className="kicker text-coral"
         >
           {t('journal.hero.vol')}
         </motion.p>

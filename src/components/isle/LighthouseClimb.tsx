@@ -165,7 +165,7 @@ export default function LighthouseClimb({
             {/* text stack */}
             <div>
               <div ref={textRef}>
-                <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-butter">
+                <p className="kicker text-butter">
                   {t('isle.lighthouse.kicker')}
                 </p>
                 <h2

@@ -232,7 +232,7 @@ export default function SunsetPoint({
 
         {/* overlaid text */}
         <div ref={textRef} className="absolute inset-x-0 top-[12%] px-6 text-center">
-          <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-ink/80">
+          <p className="kicker text-ink/80">
             {t('isle.sunset.kicker')}
           </p>
           <h2
