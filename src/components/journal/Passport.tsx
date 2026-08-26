@@ -83,14 +83,16 @@ export default function Passport() {
 
           {/* passport progress */}
           <div className="flex shrink-0 items-center gap-2">
-            <div className="hidden text-right xl:block">
-              <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.14em] text-ink">
-                {t('journal.passport.collected', { n })}
-              </p>
-              <p className="font-hand text-lg leading-[1.1] text-ink-soft">
-                {complete ? t('journal.passport.completeHint') : t('journal.passport.dareYou')}
-              </p>
-            </div>
+            {!complete && (
+              <div className="hidden text-right sm:block">
+                <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.14em] text-ink">
+                  {t('journal.passport.collected', { n })}
+                </p>
+                <p className="font-hand text-lg leading-[1.1] text-ink-soft">
+                  {t('journal.passport.dareYou')}
+                </p>
+              </div>
+            )}
             {complete && (
               <button
                 type="button"
