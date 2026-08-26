@@ -89,7 +89,7 @@ export function PostmarkStamp({
         fill={color}
         fontFamily="Fredoka, sans-serif"
       >
-        {date ?? 'EST. 1962'}
+        {date ?? 'EST. 1862'}
       </text>
       <path d="M32 58 Q50 52 68 58" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
       <path d="M34 64 Q50 59 66 64" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
@@ -145,7 +145,7 @@ export function CollectedStamp({ size = 76 }: { size?: number }) {
         fontFamily="Nunito, sans-serif"
         letterSpacing="1.4"
       >
-        EST. 1962
+        EST. 1862
       </text>
     </svg>
   );

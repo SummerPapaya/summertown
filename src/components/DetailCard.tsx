@@ -375,7 +375,7 @@ function Postmark({ small }: { small?: boolean }) {
         STAMPED
       </text>
       <text x="50" y="70" textAnchor="middle" fontSize="8" fontWeight="700" fill="var(--coral)" fontFamily="Nunito, sans-serif" letterSpacing="1">
-        EST. 1962
+        EST. 1862
       </text>
     </svg>
   );

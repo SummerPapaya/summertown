@@ -26,7 +26,7 @@ const SCRAP_COLORS = [
   'var(--apricot)',
 ];
 
-/** deterministic PRNG so render stays pure (est. 1962, naturally) */
+/** deterministic PRNG so render stays pure (est. 1862, naturally) */
 function mulberry32(seed: number) {
   let a = seed;
   return () => {

@@ -235,7 +235,7 @@ export function WaveUnderline({
   );
 }
 
-/** circular postmark badge — "SUMMER TOWN • EST. 1962 •" */
+/** circular postmark badge — "SUMMER TOWN • EST. 1862 •" */
 export function Postmark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 100 100" className={className} aria-hidden>
@@ -271,7 +271,7 @@ export function Postmark({ className }: { className?: string }) {
         fill="currentColor"
         fontFamily="Nunito, sans-serif"
       >
-        <textPath href="#vt-pm-arc">SUMMER TOWN • EST. 1962 •</textPath>
+        <textPath href="#vt-pm-arc">SUMMER TOWN • EST. 1862 •</textPath>
       </text>
     </svg>
   );

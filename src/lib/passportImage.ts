@@ -10,6 +10,7 @@ export interface PassportRenderOptions {
   est: string;
   stamps: PassportStamp[];
   logoUrl: string;
+  coverUrl: string;
   zh: boolean;
 }
 
@@ -40,6 +41,30 @@ function roundRect(
   ctx.closePath();
 }
 
+function drawContained(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+) {
+  const ir = img.width / img.height;
+  const r = w / h;
+  let sx = 0;
+  let sy = 0;
+  let sw = img.width;
+  let sh = img.height;
+  if (ir > r) {
+    sw = img.height * r;
+    sx = (img.width - sw) / 2;
+  } else {
+    sh = img.width / r;
+    sy = (img.height - sh) / 2;
+  }
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+}
+
 function fitText(
   ctx: CanvasRenderingContext2D,
   text: string,
@@ -48,7 +73,6 @@ function fitText(
 ): string[] {
   const words = text.split(/\s+/).filter(Boolean);
   if (words.length <= 1 && ctx.measureText(text).width <= maxWidth) return [text];
-  // Prefer wrapping on spaces; for CJK, split by character.
   const tokens =
     words.length > 1 && !/[\u4e00-\u9fff]/.test(text) ? words : Array.from(text);
   const joiner = tokens === words ? ' ' : '';
@@ -79,7 +103,7 @@ function fitText(
 
 export async function renderPassportImage(opts: PassportRenderOptions): Promise<Blob> {
   const W = 1080;
-  const H = 1520;
+  const H = 1680;
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
@@ -118,6 +142,33 @@ export async function renderPassportImage(opts: PassportRenderOptions): Promise<
   ctx.stroke();
   ctx.setLineDash([]);
 
+  const photo = { x: 130, y: 120, w: 820, h: 460 };
+  ctx.fillStyle = '#FFFFFF';
+  roundRect(ctx, photo.x - 18, photo.y - 18, photo.w + 36, photo.h + 86, 28);
+  ctx.fill();
+
+  let cover: HTMLImageElement | null = null;
+  try {
+    cover = await loadImage(opts.coverUrl);
+  } catch {
+    cover = null;
+  }
+  ctx.save();
+  roundRect(ctx, photo.x, photo.y, photo.w, photo.h, 18);
+  ctx.clip();
+  if (cover) {
+    drawContained(ctx, cover, photo.x, photo.y, photo.w, photo.h);
+  } else {
+    ctx.fillStyle = '#E6DDF7';
+    ctx.fillRect(photo.x, photo.y, photo.w, photo.h);
+  }
+  ctx.restore();
+
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 8;
+  roundRect(ctx, photo.x, photo.y, photo.w, photo.h, 18);
+  ctx.stroke();
+
   let logo: HTMLImageElement | null = null;
   try {
     logo = await loadImage(opts.logoUrl);
@@ -125,36 +176,37 @@ export async function renderPassportImage(opts: PassportRenderOptions): Promise<
     logo = null;
   }
   if (logo) {
-    ctx.drawImage(logo, W / 2 - 64, 108, 128, 128);
+    ctx.drawImage(logo, W / 2 - 40, photo.y + photo.h + 8, 80, 80);
   }
 
   ctx.fillStyle = '#4A4470';
   ctx.textAlign = 'center';
-  ctx.font = `700 64px ${display}`;
-  ctx.fillText(opts.title, W / 2, 280);
+  ctx.font = `700 58px ${display}`;
+  ctx.fillText(opts.title, W / 2, 760);
 
   ctx.fillStyle = '#7B74A3';
-  ctx.font = `600 28px ${body}`;
-  ctx.fillText(opts.visitor, W / 2, 330);
-  ctx.font = `700 24px ${body}`;
-  ctx.fillText(opts.issued, W / 2, 368);
+  ctx.font = `600 26px ${body}`;
+  ctx.fillText(opts.visitor, W / 2, 802);
+  ctx.font = `700 22px ${body}`;
+  ctx.fillText(opts.issued, W / 2, 836);
 
   const cols = 2;
   const rows = 7;
   const gridX = 130;
-  const gridY = 420;
+  const gridY = 880;
   const cellW = (W - gridX * 2) / cols;
-  const cellH = 128;
+  const cellH = 92;
 
   opts.stamps.forEach((stamp, i) => {
     const col = i % cols;
     const row = Math.floor(i / cols);
     if (row >= rows) return;
-    const cx = gridX + col * cellW + cellW / 2;
-    const cy = gridY + row * cellH + 44;
+    const left = gridX + col * cellW;
+    const cy = gridY + row * cellH + 36;
+    const cx = left + 36;
 
     ctx.beginPath();
-    ctx.arc(cx - 170, cy, 28, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 24, 0, Math.PI * 2);
     ctx.fillStyle = '#FFF3DF';
     ctx.fill();
     ctx.strokeStyle = stamp.accent;
@@ -163,30 +215,30 @@ export async function renderPassportImage(opts: PassportRenderOptions): Promise<
 
     ctx.setLineDash([4, 4]);
     ctx.beginPath();
-    ctx.arc(cx - 170, cy, 20, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 16, 0, Math.PI * 2);
     ctx.strokeStyle = '#7EC8E3';
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.setLineDash([]);
 
     ctx.fillStyle = '#4A4470';
-    ctx.font = `700 18px ${display}`;
+    ctx.font = `700 16px ${display}`;
     ctx.textAlign = 'center';
-    ctx.fillText(String(i + 1).padStart(2, '0'), cx - 170, cy + 6);
+    ctx.fillText(String(i + 1).padStart(2, '0'), cx, cy + 5);
 
     ctx.textAlign = 'left';
-    ctx.font = `600 26px ${display}`;
+    ctx.font = `600 22px ${display}`;
     ctx.fillStyle = '#4A4470';
-    const lines = fitText(ctx, stamp.name, cellW - 90, 2);
+    const lines = fitText(ctx, stamp.name, cellW - 86, 2);
     lines.forEach((line, li) => {
-      ctx.fillText(line, cx - 128, cy + (li === 0 ? -4 : 24));
+      ctx.fillText(line, left + 70, cy + (li === 0 ? -4 : 20));
     });
   });
 
   ctx.textAlign = 'center';
   ctx.fillStyle = '#E2635F';
   ctx.font = `700 24px ${body}`;
-  ctx.fillText(opts.est, W / 2, H - 120);
+  ctx.fillText(opts.est, W / 2, H - 110);
 
   return await new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
