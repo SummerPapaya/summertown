@@ -66,11 +66,11 @@ export default function Navbar() {
         to="/"
         className={cn(
           pill,
-          'pointer-events-auto col-start-1 w-fit max-w-full justify-self-start px-2.5 py-1.5 sm:px-4 sm:py-2',
+          'pointer-events-auto col-start-1 w-fit max-w-[9.5rem] justify-self-start px-3 py-2 pr-4 sm:max-w-none sm:px-4',
         )}
       >
         <img src="/logo.svg" alt={t('nav.logoAlt')} className="h-8 w-8 shrink-0 sm:h-9 sm:w-9" />
-        <span className="whitespace-nowrap font-display text-[0.95rem] font-semibold tracking-tight text-ink sm:text-lg">
+        <span className="font-display text-[0.82rem] font-semibold leading-[1.1] tracking-tight text-ink sm:whitespace-nowrap sm:text-lg">
           {t('nav.brand')}
         </span>
       </Link>
@@ -103,8 +103,8 @@ export default function Navbar() {
       </nav>
 
       {/* right: language + time + sound pill */}
-      <div className={cn(pill, 'pointer-events-auto col-start-3 w-fit justify-self-end px-2 py-1.5')}>
-        <div role="group" aria-label={t('nav.language')} className="flex items-center gap-1 rounded-full bg-white/60 p-1">
+      <div className={cn(pill, 'pointer-events-auto col-start-3 w-fit justify-self-end gap-1 px-1.5 py-1 sm:gap-2 sm:px-2 sm:py-1.5')}>
+        <div role="group" aria-label={t('nav.language')} className="flex items-center gap-0.5 rounded-full bg-white/60 p-0.5 sm:gap-1 sm:p-1">
           {LANGS.map((l) => {
             const active = lang === l.id;
             return (
@@ -115,7 +115,7 @@ export default function Navbar() {
                 aria-label={l.label}
                 onClick={() => setLang(l.id)}
                 className={cn(
-                  'flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-[0.78rem] font-extrabold transition-all duration-300 ease-squash',
+                  'flex h-7 min-w-7 items-center justify-center rounded-full px-1.5 text-[0.72rem] font-extrabold transition-all duration-300 ease-squash sm:h-8 sm:min-w-8 sm:px-2 sm:text-[0.78rem]',
                   active ? 'scale-110 bg-butter text-ink shadow-sm' : 'text-ink-soft hover:scale-105 hover:bg-white',
                 )}
               >
@@ -125,7 +125,7 @@ export default function Navbar() {
             );
           })}
         </div>
-        <div role="group" aria-label={t('nav.timeOfDay')} className="flex items-center gap-1 rounded-full bg-white/60 p-1">
+        <div role="group" aria-label={t('nav.timeOfDay')} className="flex items-center gap-0.5 rounded-full bg-white/60 p-0.5 sm:gap-1 sm:p-1">
           {TIMES.map((time_) => {
             const Icon = time_.icon;
             const active = time === time_.id;
@@ -137,11 +137,11 @@ export default function Navbar() {
                 aria-pressed={active}
                 onClick={() => setTime(time_.id)}
                 className={cn(
-                  'flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300 ease-squash',
+                  'flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ease-squash sm:h-8 sm:w-8',
                   active ? 'scale-110 bg-butter text-ink shadow-sm' : 'text-ink-soft hover:scale-105 hover:bg-white',
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </button>
             );
           })}
@@ -155,7 +155,7 @@ export default function Navbar() {
             if (!soundOn) playChime();
           }}
           className={cn(
-            'ml-1 flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ease-squash',
+            'flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300 ease-squash sm:ml-1 sm:h-9 sm:w-9',
             soundOn ? 'bg-seafoam text-ink' : 'text-ink-soft hover:bg-white',
           )}
         >

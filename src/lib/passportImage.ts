@@ -185,8 +185,8 @@ export async function renderPassportImage(opts: PassportRenderOptions): Promise<
 
   ctx.textAlign = 'center';
   ctx.fillStyle = '#E2635F';
-  ctx.font = `700 22px ${display}`;
-  ctx.fillText(opts.est, W / 2, H - 110);
+  ctx.font = `700 24px ${body}`;
+  ctx.fillText(opts.est, W / 2, H - 120);
 
   return await new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
