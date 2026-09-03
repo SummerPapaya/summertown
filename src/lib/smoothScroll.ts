@@ -39,3 +39,11 @@ export function usePauseSmoothScroll(paused: boolean) {
     };
   }, [paused]);
 }
+
+export function scrollToElement(el: HTMLElement, offset = -100) {
+  if (smoothScroll) {
+    smoothScroll.scrollTo(el, { offset, immediate: false });
+    return;
+  }
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}

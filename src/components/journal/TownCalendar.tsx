@@ -1,3 +1,4 @@
+import { Link } from 'react-router';
 import { motion, useReducedMotion } from 'framer-motion';
 import { CalendarDays, Wind } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
@@ -43,7 +44,11 @@ export default function TownCalendar() {
   const week = buildWeek();
 
   return (
-    <section className="mx-auto max-w-[1200px] px-4 py-16 sm:px-6 md:py-24" aria-labelledby="calendar-title">
+    <section
+      id="town-calendar"
+      className="mx-auto max-w-[1200px] scroll-mt-[100px] px-4 py-16 sm:px-6 md:py-24"
+      aria-labelledby="calendar-title"
+    >
       <div className="grid gap-10 lg:grid-cols-[3fr_2fr] lg:gap-12">
         {/* left — event notes */}
         <div>
@@ -53,9 +58,12 @@ export default function TownCalendar() {
             viewport={{ once: true, amount: 0.4 }}
             transition={{ duration: 0.6, ease: EASE_SQUASH }}
           >
-            <p className="kicker text-coral">
+            <Link
+              to="/?place=town-hall"
+              className="kicker inline-block text-coral transition-transform duration-300 ease-squash hover:scale-105"
+            >
               {t('journal.calendar.kicker')}
-            </p>
+            </Link>
             <h2
               id="calendar-title"
               className="mt-2 font-display text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[1.05] text-ink"

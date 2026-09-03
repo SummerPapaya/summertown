@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router';
 import { motion, useReducedMotion } from 'framer-motion';
 import { PenLine, Pin } from 'lucide-react';
 import { toast } from 'sonner';
@@ -245,7 +246,11 @@ export default function PostcardWall() {
   };
 
   return (
-    <section className="mx-auto max-w-[1200px] px-4 py-16 sm:px-6 md:py-24" aria-labelledby="postcards-title">
+    <section
+      id="postcard-wall"
+      className="mx-auto max-w-[1200px] scroll-mt-[100px] px-4 py-16 sm:px-6 md:py-24"
+      aria-labelledby="postcards-title"
+    >
       {/* header + CTA */}
       <div className="flex flex-wrap items-end justify-between gap-5">
         <motion.div
@@ -254,9 +259,12 @@ export default function PostcardWall() {
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.6, ease: EASE_SQUASH }}
         >
-          <p className="kicker text-coral">
+          <Link
+            to="/?place=town-hall"
+            className="kicker inline-block text-coral transition-transform duration-300 ease-squash hover:scale-105"
+          >
             {t('journal.postcards.kicker')}
-          </p>
+          </Link>
           <h2
             id="postcards-title"
             className="mt-2 font-display text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[1.05] text-ink"

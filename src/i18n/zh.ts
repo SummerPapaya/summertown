@@ -197,6 +197,8 @@ export const zh: DeepL10n<Messages> = {
     podcastRadio: 'Summer FM 夏天镇播客',
     podcastIsle: '风铃屿播客',
     appleAlbum: '一天一苹果 · 打开相册 →',
+    townCalendar: '小镇日历 · 看看布告 →',
+    postcardWall: '明信片墙 · 留一句话 →',
   },
   home: {
     fieldNotes: {
