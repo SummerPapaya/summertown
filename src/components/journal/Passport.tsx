@@ -1,12 +1,21 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Download, Stamp } from 'lucide-react';
 import { FILTERS, LANDMARKS } from '@/lib/landmarks';
 import type { FilterId, Landmark } from '@/lib/landmarks';
 import { useTown } from '@/lib/town';
 import { useLanguage } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import { downloadBlob, renderPassportImage } from '@/lib/passportImage';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { usePauseSmoothScroll } from '@/lib/smoothScroll';
 import { EASE_BACK_156, EASE_SQUASH } from './presets';
 import { ArrowDoodle, CollectedStamp, TapeStrip } from './bits';
 
@@ -20,6 +29,11 @@ const CHIP_KEY: Record<FilterId, string> = {
   isle: 'journal.passport.chips.isle',
 };
 
+const PASSPORT_COVERS: { id: string; src: string; labelKey: string }[] = [
+  { id: 'map', src: '/map-full.png', labelKey: 'journal.passport.covers.map' },
+  ...LANDMARKS.map((lm) => ({ id: lm.id, src: lm.scene, labelKey: lm.nameKey })),
+];
+
 export default function Passport() {
   const { stamps } = useTown();
   const { t } = useLanguage();
@@ -28,6 +42,8 @@ export default function Passport() {
 
   const visible = LANDMARKS.filter((l) => filter === 'all' || l.filter === filter);
   const n = stamps.length;
+  const complete = n >= LANDMARKS.length;
+  const [passportOpen, setPassportOpen] = useState(false);
 
   return (
     <section className="relative" aria-labelledby="passport-title">
@@ -40,7 +56,7 @@ export default function Passport() {
         <div className="mx-auto flex max-w-[1200px] items-center gap-3 rounded-[28px] border-[3px] border-white bg-[rgba(255,249,239,0.85)] py-2 pl-3 pr-2 shadow-sticker backdrop-blur-[12px] sm:pl-4">
           {/* filter chips — horizontal scroll on mobile */}
           <div
-            className="no-scrollbar flex flex-1 items-center gap-2 overflow-x-auto"
+            className="no-scrollbar flex min-w-0 flex-1 items-center gap-2 overflow-x-auto"
             role="group"
             aria-label={t('journal.passport.filterAria')}
           >
@@ -67,18 +83,43 @@ export default function Passport() {
           </div>
 
           {/* passport progress */}
-          <div className="flex shrink-0 items-center gap-2.5">
-            <div className="hidden text-right sm:block">
-              <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.14em] text-ink">
-                {t('journal.passport.collected', { n })}
-              </p>
-              <p className="font-hand text-lg leading-[1.1] text-ink-soft">
-                {t('journal.passport.dareYou')}
-              </p>
-            </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {!complete && (
+              <div className="hidden text-right sm:block">
+                <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.14em] text-ink">
+                  {t('journal.passport.collected', { n })}
+                </p>
+                <p className="font-hand text-lg leading-[1.1] text-ink-soft">
+                  {t('journal.passport.dareYou')}
+                </p>
+              </div>
+            )}
+            {complete && (
+              <button
+                type="button"
+                onClick={() => setPassportOpen(true)}
+                className="btn-primary hidden h-11 shrink-0 whitespace-nowrap px-4 py-0 text-[0.8rem] sm:inline-flex"
+              >
+                <Stamp className="h-4 w-4" aria-hidden />
+                {t('journal.passport.make')}
+              </button>
+            )}
             <PassportBadge n={n} />
           </div>
         </div>
+
+        {complete && (
+          <div className="mx-auto mt-2 max-w-[1200px] sm:hidden">
+            <button
+              type="button"
+              onClick={() => setPassportOpen(true)}
+              className="btn-primary w-full"
+            >
+              <Stamp className="h-4 w-4" aria-hidden />
+              {t('journal.passport.make')}
+            </button>
+          </div>
+        )}
 
         {/* empty-collection nudge */}
         {n === 0 && (
@@ -113,7 +154,153 @@ export default function Passport() {
           </AnimatePresence>
         </motion.div>
       </div>
+
+      <PassportDialog open={passportOpen} onOpenChange={setPassportOpen} />
     </section>
+  );
+}
+
+function PassportDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { t, lang } = useLanguage();
+  const [coverId, setCoverId] = useState('map');
+  const [src, setSrc] = useState<string | null>(null);
+  const [blob, setBlob] = useState<Blob | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
+
+  const cover = PASSPORT_COVERS.find((c) => c.id === coverId) ?? PASSPORT_COVERS[0];
+  usePauseSmoothScroll(open);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    const issued = new Date();
+    const dateLabel =
+      lang === 'zh'
+        ? `${issued.getFullYear()}年${issued.getMonth() + 1}月${issued.getDate()}日`
+        : issued.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+    setBusy(true);
+    setError(false);
+    setSrc(null);
+    setBlob(null);
+
+    renderPassportImage({
+      title: t('journal.passport.dialogTitle'),
+      visitor: t('journal.passport.visitor'),
+      issued: t('journal.passport.issued', { date: dateLabel }),
+      est: t('journal.passport.est'),
+      stamps: LANDMARKS.map((lm) => ({ name: t(lm.nameKey), accent: lm.accent })),
+      logoUrl: `${window.location.origin}/logo.svg`,
+      coverUrl: `${window.location.origin}${cover.src}`,
+      zh: lang === 'zh',
+    })
+      .then((next) => {
+        if (cancelled) return;
+        setBlob(next);
+        setSrc(URL.createObjectURL(next));
+      })
+      .catch(() => {
+        if (!cancelled) setError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setBusy(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, lang, t, cover.src]);
+
+  useEffect(() => {
+    return () => {
+      if (src) URL.revokeObjectURL(src);
+    };
+  }, [src]);
+
+  const filename = lang === 'zh' ? '夏天镇护照.png' : 'summer-town-passport.png';
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden rounded-[28px] border-[3px] border-white bg-paper p-0 sm:max-w-2xl">
+        <div
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6"
+          data-lenis-prevent=""
+        >
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl font-semibold text-ink">
+              {t('journal.passport.dialogTitle')}
+            </DialogTitle>
+            <DialogDescription className="font-hand text-xl text-ink-soft">
+              {t('journal.passport.dialogDesc')}
+            </DialogDescription>
+          </DialogHeader>
+
+          <fieldset className="mt-3">
+            <legend className="text-[0.78rem] font-extrabold uppercase tracking-[0.14em] text-ink-soft">
+              {t('journal.passport.coverLegend')}
+            </legend>
+            <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
+              {PASSPORT_COVERS.map((c) => {
+                const active = c.id === cover.id;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setCoverId(c.id)}
+                    className={cn(
+                      'overflow-hidden rounded-2xl border-[3px] text-left transition-all duration-300 ease-squash',
+                      active
+                        ? 'scale-[1.03] border-white bg-butter shadow-pop'
+                        : 'border-ink/10 bg-white/70 hover:border-white',
+                    )}
+                  >
+                    <span className="block aspect-[4/3] overflow-hidden bg-lilac/40">
+                      <img src={c.src} alt="" className="h-full w-full object-contain" />
+                    </span>
+                    <span className="block line-clamp-2 min-h-[2.1em] px-1 py-1 text-center text-[0.58rem] font-extrabold leading-tight tracking-[0.04em] text-ink">
+                      {t(c.labelKey)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+
+          <div className="mt-4 overflow-hidden rounded-[22px] border-[3px] border-white bg-lilac/40">
+            {src && (
+              <img src={src} alt={t('journal.passport.dialogTitle')} className="block h-auto w-full" />
+            )}
+            {busy && !src && (
+              <p className="px-6 py-16 text-center font-hand text-2xl text-ink-soft">
+                {t('common.loading')}
+              </p>
+            )}
+            {error && (
+              <p className="px-6 py-16 text-center font-hand text-2xl text-coral">
+                {t('journal.passport.makeError')}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            disabled={!blob}
+            onClick={() => blob && downloadBlob(blob, filename)}
+            className="btn-primary mt-3 w-full disabled:translate-y-0 disabled:opacity-60"
+          >
+            <Download className="h-4 w-4" aria-hidden />
+            {t('journal.passport.download')}
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

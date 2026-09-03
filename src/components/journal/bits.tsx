@@ -89,7 +89,7 @@ export function PostmarkStamp({
         fill={color}
         fontFamily="Fredoka, sans-serif"
       >
-        {date ?? 'EST. 1962'}
+        {date ?? 'EST. 1862'}
       </text>
       <path d="M32 58 Q50 52 68 58" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
       <path d="M34 64 Q50 59 66 64" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
@@ -145,7 +145,7 @@ export function CollectedStamp({ size = 76 }: { size?: number }) {
         fontFamily="Nunito, sans-serif"
         letterSpacing="1.4"
       >
-        EST. 1962
+        EST. 1862
       </text>
     </svg>
   );
@@ -232,6 +232,81 @@ export function Doodle({
           <path d="M32 36 L32 46" stroke="#4A4470" strokeWidth="2" strokeLinecap="round" />
           <rect x="27" y="46" width="10" height="12" rx="2" fill="#FFC3D0" stroke="#4A4470" strokeWidth="2" />
           <path d="M14 22 Q10 24 12 28 M50 22 Q54 24 52 28" fill="none" stroke="#7EC8E3" strokeWidth="2.2" strokeLinecap="round" />
+        </svg>
+      );
+    case 'cat':
+      return (
+        <svg {...common}>
+          <path d="M16 28 L20 10 L30 22 Z" fill="#FFC9A3" stroke="#4A4470" strokeWidth="2" strokeLinejoin="round" />
+          <path d="M48 28 L44 10 L34 22 Z" fill="#FFC9A3" stroke="#4A4470" strokeWidth="2" strokeLinejoin="round" />
+          <circle cx="32" cy="38" r="18" fill="#FFC3D0" stroke="#4A4470" strokeWidth="2" />
+          <circle cx="25" cy="35" r="2.2" fill="#4A4470" />
+          <circle cx="39" cy="35" r="2.2" fill="#4A4470" />
+          <path d="M30 42 Q32 45 34 42" fill="none" stroke="#4A4470" strokeWidth="2" strokeLinecap="round" />
+          <path d="M32 41 L32 44" stroke="#E2635F" strokeWidth="2" strokeLinecap="round" />
+          <path
+            d="M12 36 L22 38 M12 42 L22 41 M52 36 L42 38 M52 42 L42 41"
+            fill="none"
+            stroke="#4A4470"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+        </svg>
+      );
+    case 'dog':
+      return (
+        <svg {...common}>
+          <ellipse cx="18" cy="34" rx="8" ry="14" fill="#D9A066" stroke="#4A4470" strokeWidth="2" transform="rotate(-18 18 34)" />
+          <ellipse cx="46" cy="34" rx="8" ry="14" fill="#D9A066" stroke="#4A4470" strokeWidth="2" transform="rotate(18 46 34)" />
+          <circle cx="32" cy="36" r="16" fill="#FFB37E" stroke="#4A4470" strokeWidth="2" />
+          <ellipse cx="32" cy="42" rx="8" ry="6" fill="#FFF9EF" stroke="#4A4470" strokeWidth="2" />
+          <circle cx="26" cy="33" r="2.1" fill="#4A4470" />
+          <circle cx="38" cy="33" r="2.1" fill="#4A4470" />
+          <circle cx="32" cy="41" r="2.4" fill="#4A4470" />
+          <path d="M29 46 Q32 49 35 46" fill="none" stroke="#4A4470" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      );
+    case 'lily':
+      return (
+        <svg {...common}>
+          <path d="M32 56 L32 18" fill="none" stroke="#8FD3A8" strokeWidth="2.6" strokeLinecap="round" />
+          <path d="M32 40 C22 36 16 28 18 22" fill="none" stroke="#8FD3A8" strokeWidth="2.2" strokeLinecap="round" />
+          <path d="M18 24 C14 18 20 12 26 18 C22 22 20 24 18 24 Z" fill="#8FD3A8" stroke="#4A4470" strokeWidth="1.8" />
+          <path d="M26 22 Q32 28 32 36" fill="none" stroke="#4A4470" strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M24 30 Q20 34 22 40 Q26 36 28 32 Z" fill="#FFF9EF" stroke="#4A4470" strokeWidth="1.8" />
+          <path d="M32 24 Q32 30 30 36 Q34 32 36 26 Z" fill="#FFF9EF" stroke="#4A4470" strokeWidth="1.8" />
+          <path d="M40 28 Q38 34 36 40 Q42 36 44 30 Z" fill="#FFF9EF" stroke="#4A4470" strokeWidth="1.8" />
+          <circle cx="24" cy="38" r="1.6" fill="#F4B942" />
+          <circle cx="32" cy="34" r="1.6" fill="#F4B942" />
+          <circle cx="40" cy="38" r="1.6" fill="#F4B942" />
+        </svg>
+      );
+    case 'wave':
+      return (
+        <svg {...common}>
+          <path
+            d="M8 28 Q18 16 28 28 T48 28 T68 28"
+            fill="none"
+            stroke="#7EC8E3"
+            strokeWidth="4"
+            strokeLinecap="round"
+          />
+          <path
+            d="M6 40 Q16 28 26 40 T46 40 T66 40"
+            fill="none"
+            stroke="#5EC2BC"
+            strokeWidth="4"
+            strokeLinecap="round"
+          />
+          <path
+            d="M10 50 Q20 40 30 50 T50 50 T70 50"
+            fill="none"
+            stroke="#A5E3D8"
+            strokeWidth="3.4"
+            strokeLinecap="round"
+          />
+          <circle cx="20" cy="18" r="2.2" fill="#FFC3D0" />
+          <circle cx="44" cy="20" r="1.8" fill="#FFF9EF" stroke="#7EC8E3" strokeWidth="1.4" />
         </svg>
       );
   }

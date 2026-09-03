@@ -137,7 +137,7 @@ export default function LilyMeadow({
         }}
       >
         <div>
-          <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-coral">
+          <p className="kicker text-coral">
             {t('isle.meadow.kicker')}
           </p>
           <h2 className="mt-3 font-display text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[1.05] text-ink">

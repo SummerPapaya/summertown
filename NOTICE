@@ -9,7 +9,8 @@ Last updated: 2026
 This notice covers visual assets distributed with this project, including but
 not limited to files under `public/` such as:
 
-- Map base art and extensions (for example `map-base.png`, `map-base-ext.png`)
+- Map base art and extensions (for example `map-base.png`, `map-base-ext.png`,
+  `map-full.png`)
 - Landmark cutouts and props (for example `b-*.png`, `i-*.png`, `prop-*.png`,
   `ferry.png`)
 - Scene / detail illustrations (for example `scene-*.png`, `isle-*.png`)

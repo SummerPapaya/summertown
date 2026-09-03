@@ -69,7 +69,7 @@ export default function Closing() {
       </div>
 
       <div className="relative mx-auto max-w-[760px] text-center">
-        <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-butter">
+        <p className="kicker text-butter">
           {t('isle.closing.kicker')}
         </p>
         <h2

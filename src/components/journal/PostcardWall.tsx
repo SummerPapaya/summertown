@@ -254,7 +254,7 @@ export default function PostcardWall() {
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.6, ease: EASE_SQUASH }}
         >
-          <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-coral">
+          <p className="kicker text-coral">
             {t('journal.postcards.kicker')}
           </p>
           <h2

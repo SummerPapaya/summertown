@@ -22,9 +22,9 @@ const TIMES: { id: TimeOfDay; icon: typeof Sun; labelKey: string }[] = [
   { id: 'starlight', icon: Moon, labelKey: 'nav.time.starlight' },
 ];
 
-const LANGS: { id: Language; label: string }[] = [
-  { id: 'en', label: 'EN' },
-  { id: 'zh', label: '中文' },
+const LANGS: { id: Language; label: string; shortLabel: string }[] = [
+  { id: 'en', label: 'EN', shortLabel: 'EN' },
+  { id: 'zh', label: '中文', shortLabel: '中' },
 ];
 
 const pill =
@@ -59,18 +59,27 @@ export default function Navbar() {
         delay: tucked ? 0 : 0.2,
         ease: [0.22, 1.2, 0.36, 1] as [number, number, number, number],
       }}
-      className="pointer-events-none fixed inset-x-0 top-0 z-[5000] flex items-center justify-between gap-3 px-4 pt-4"
+      className="pointer-events-none fixed inset-x-0 top-0 z-[5000] grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 pt-3 sm:gap-3 sm:px-4 sm:pt-4"
     >
       {/* left: logo pill */}
-      <Link to="/" className={cn(pill, 'pointer-events-auto px-4 py-2')}>
-        <img src="/logo.svg" alt={t('nav.logoAlt')} className="h-9 w-9" />
-        <span className="font-display text-lg font-semibold tracking-tight text-ink">
+      <Link
+        to="/"
+        className={cn(
+          pill,
+          'pointer-events-auto col-start-1 w-fit max-w-[9.5rem] justify-self-start px-3 py-2 pr-4 sm:max-w-none sm:px-4',
+        )}
+      >
+        <img src="/logo.svg" alt={t('nav.logoAlt')} className="h-8 w-8 shrink-0 sm:h-9 sm:w-9" />
+        <span className="font-display text-[0.82rem] font-semibold leading-[1.1] tracking-tight text-ink sm:whitespace-nowrap sm:text-lg">
           {t('nav.brand')}
         </span>
       </Link>
 
       {/* center: nav pill */}
-      <nav className={cn(pill, 'pointer-events-auto hidden px-2 py-1.5 md:flex')} aria-label={t('nav.mainNav')}>
+      <nav
+        className={cn(pill, 'pointer-events-auto col-start-2 hidden justify-self-center px-2 py-1.5 md:flex')}
+        aria-label={t('nav.mainNav')}
+      >
         {LINKS.map((l) => (
           <NavLink
             key={l.to}
@@ -94,8 +103,8 @@ export default function Navbar() {
       </nav>
 
       {/* right: language + time + sound pill */}
-      <div className={cn(pill, 'pointer-events-auto px-2 py-1.5')}>
-        <div role="group" aria-label={t('nav.language')} className="flex items-center gap-1 rounded-full bg-white/60 p-1">
+      <div className={cn(pill, 'pointer-events-auto col-start-3 w-fit justify-self-end gap-1 px-1.5 py-1 sm:gap-2 sm:px-2 sm:py-1.5')}>
+        <div role="group" aria-label={t('nav.language')} className="flex items-center gap-0.5 rounded-full bg-white/60 p-0.5 sm:gap-1 sm:p-1">
           {LANGS.map((l) => {
             const active = lang === l.id;
             return (
@@ -103,18 +112,20 @@ export default function Navbar() {
                 key={l.id}
                 type="button"
                 aria-pressed={active}
+                aria-label={l.label}
                 onClick={() => setLang(l.id)}
                 className={cn(
-                  'flex h-8 items-center justify-center rounded-full px-2 text-[0.78rem] font-extrabold transition-all duration-300 ease-squash',
+                  'flex h-7 min-w-7 items-center justify-center rounded-full px-1.5 text-[0.72rem] font-extrabold transition-all duration-300 ease-squash sm:h-8 sm:min-w-8 sm:px-2 sm:text-[0.78rem]',
                   active ? 'scale-110 bg-butter text-ink shadow-sm' : 'text-ink-soft hover:scale-105 hover:bg-white',
                 )}
               >
-                {l.label}
+                <span className="md:hidden">{l.shortLabel}</span>
+                <span className="hidden md:inline">{l.label}</span>
               </button>
             );
           })}
         </div>
-        <div role="group" aria-label={t('nav.timeOfDay')} className="flex items-center gap-1 rounded-full bg-white/60 p-1">
+        <div role="group" aria-label={t('nav.timeOfDay')} className="flex items-center gap-0.5 rounded-full bg-white/60 p-0.5 sm:gap-1 sm:p-1">
           {TIMES.map((time_) => {
             const Icon = time_.icon;
             const active = time === time_.id;
@@ -126,11 +137,11 @@ export default function Navbar() {
                 aria-pressed={active}
                 onClick={() => setTime(time_.id)}
                 className={cn(
-                  'flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300 ease-squash',
+                  'flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ease-squash sm:h-8 sm:w-8',
                   active ? 'scale-110 bg-butter text-ink shadow-sm' : 'text-ink-soft hover:scale-105 hover:bg-white',
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </button>
             );
           })}
@@ -144,7 +155,7 @@ export default function Navbar() {
             if (!soundOn) playChime();
           }}
           className={cn(
-            'ml-1 flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ease-squash',
+            'flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300 ease-squash sm:ml-1 sm:h-9 sm:w-9',
             soundOn ? 'bg-seafoam text-ink' : 'text-ink-soft hover:bg-white',
           )}
         >

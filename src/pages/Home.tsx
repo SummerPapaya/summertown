@@ -122,7 +122,7 @@ function HeroOverlay({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -60, opacity: 0 }}
             transition={{ delay: 0.9, duration: 0.7, ease: [0.22, 1.2, 0.36, 1] }}
-            className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-coral"
+            className="kicker text-coral"
           >
             {t('hero.kicker')}
           </motion.p>
