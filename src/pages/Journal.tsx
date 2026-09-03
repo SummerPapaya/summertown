@@ -1,8 +1,11 @@
+import { useEffect } from 'react';
+import { useLocation } from 'react-router';
 import BulletinHero from '@/components/journal/BulletinHero';
 import Passport from '@/components/journal/Passport';
 import TownCalendar from '@/components/journal/TownCalendar';
 import PostcardWall from '@/components/journal/PostcardWall';
 import ClosingStrip from '@/components/journal/ClosingStrip';
+import { scrollToElement } from '@/lib/smoothScroll';
 
 /**
  * The Summer Town Journal (/journal) — journal.md:
@@ -11,6 +14,24 @@ import ClosingStrip from '@/components/journal/ClosingStrip';
  * nav offset (react-dev.md contract).
  */
 export default function Journal() {
+  const { hash } = useLocation();
+
+  useEffect(() => {
+    const id = hash.replace(/^#/, '');
+    if (!id) return;
+    const jump = () => {
+      const el = document.getElementById(id);
+      if (el) scrollToElement(el);
+    };
+    jump();
+    const t = window.setTimeout(jump, 80);
+    const t2 = window.setTimeout(jump, 320);
+    return () => {
+      window.clearTimeout(t);
+      window.clearTimeout(t2);
+    };
+  }, [hash]);
+
   return (
     <div className="-mt-[88px]">
       <BulletinHero />

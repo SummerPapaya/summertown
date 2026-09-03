@@ -40,6 +40,8 @@ import {
   CakeSlice,
   RadioTower,
   Podcast,
+  CalendarDays,
+  Pin,
   Stamp,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -286,6 +288,33 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
               </motion.div>
             )}
 
+            {/* Town Hall — calendar + postcard wall live on the journal */}
+            {lm.id === 'town-hall' && (
+              <motion.div variants={item} className="mt-5 flex flex-col gap-2.5">
+                <Link
+                  to="/journal#town-calendar"
+                  className="group flex items-center gap-2.5 rounded-[20px] border-[3px] border-white bg-white/60 px-4 py-3 shadow-sticker transition-all duration-300 ease-squash hover:-translate-y-0.5 hover:bg-white/80"
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-white bg-coral/30">
+                    <CalendarDays className="h-4 w-4 text-coral" />
+                  </span>
+                  <span className="font-display text-sm font-semibold text-ink transition-transform duration-300 ease-squash group-hover:scale-[1.02]">
+                    {t('detail.townCalendar')}
+                  </span>
+                </Link>
+                <Link
+                  to="/journal#postcard-wall"
+                  className="group flex items-center gap-2.5 rounded-[20px] border-[3px] border-white bg-white/60 px-4 py-3 shadow-sticker transition-all duration-300 ease-squash hover:-translate-y-0.5 hover:bg-white/80"
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-white bg-coral/30">
+                    <Pin className="h-4 w-4 text-coral" />
+                  </span>
+                  <span className="font-display text-sm font-semibold text-ink transition-transform duration-300 ease-squash group-hover:scale-[1.02]">
+                    {t('detail.postcardWall')}
+                  </span>
+                </Link>
+              </motion.div>
+            )}
             {/* An Apple A Day album link (Apple Cottage) */}
             {lm.id === 'apple-cottage' && (
               <motion.div variants={item} className="mt-5">

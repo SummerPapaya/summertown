@@ -245,6 +245,8 @@ export const en = {
     podcastRadio: 'Summer FM podcast',
     podcastIsle: 'Windbell Isle podcast',
     appleAlbum: 'An Apple A Day — open the album →',
+    townCalendar: 'Town calendar — pinned notices →',
+    postcardWall: 'Postcard wall — leave a note →',
   },
   home: {
     fieldNotes: {
