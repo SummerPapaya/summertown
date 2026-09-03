@@ -24,8 +24,12 @@ export default function Journal() {
       if (el) scrollToElement(el);
     };
     jump();
-    const t = window.setTimeout(jump, 120);
-    return () => window.clearTimeout(t);
+    const t = window.setTimeout(jump, 80);
+    const t2 = window.setTimeout(jump, 320);
+    return () => {
+      window.clearTimeout(t);
+      window.clearTimeout(t2);
+    };
   }, [hash]);
 
   return (

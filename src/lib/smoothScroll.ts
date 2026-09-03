@@ -42,7 +42,7 @@ export function usePauseSmoothScroll(paused: boolean) {
 
 export function scrollToElement(el: HTMLElement, offset = -100) {
   if (smoothScroll) {
-    smoothScroll.scrollTo(el, { offset, immediate: false });
+    smoothScroll.scrollTo(el, { offset, immediate: true });
     return;
   }
   el.scrollIntoView({ behavior: 'smooth', block: 'start' });
