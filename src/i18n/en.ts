@@ -292,6 +292,7 @@ export const en = {
     population: 'Pop. 214 (plus one very serious seagull)',
     explore: 'Explore',
     landmarks: 'Landmarks',
+    podcasts: 'Podcasts from Summer Town',
     newsletter: {
       title: 'Postcards from Summer Town',
       body: 'One breezy letter a month. No seagull spam.',

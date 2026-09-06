@@ -3,6 +3,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { TownProvider } from '@/lib/town';
 import Layout from '@/components/Layout';
 import SparkleTrail from '@/components/SparkleTrail';
+import ScrollToTop from '@/components/ScrollToTop';
 import Home from '@/pages/Home';
 import WindbellIsle from '@/pages/WindbellIsle';
 import Journal from '@/pages/Journal';
@@ -14,6 +15,7 @@ import TownAdmin from '@/pages/TownAdmin';
 export default function App() {
   return (
     <TownProvider>
+      <ScrollToTop />
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
