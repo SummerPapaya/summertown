@@ -244,6 +244,7 @@ export const zh: DeepL10n<Messages> = {
     population: '人口 214（外加一只特别严肃的海鸥）',
     explore: '探索',
     landmarks: '地标',
+    podcasts: '夏日播客',
     newsletter: {
       title: '夏天镇来信',
       body: '每月一封，带着海风。绝不发海鸥小广告。',

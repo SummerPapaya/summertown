@@ -1,12 +1,10 @@
-import { useState } from 'react';
 import { Link } from 'react-router';
 import { motion } from 'framer-motion';
-import { Radio, Send } from 'lucide-react';
+import { Radio } from 'lucide-react';
 import { LANDMARKS } from '@/lib/landmarks';
 import { useTown } from '@/lib/town';
 import { useLanguage } from '@/lib/i18n';
 import { playStatic } from '@/lib/sound';
-import { trpc } from '@/providers/trpc';
 
 const EXPLORE = [
   { to: '/', labelKey: 'nav.map' },
@@ -15,14 +13,13 @@ const EXPLORE = [
   { to: '/visit', labelKey: 'nav.visit' },
 ];
 
-const TOP_LANDMARKS = ['town-hall', 'theater', 'coffee', 'radio', 'windbell-isle'];
+const TOP_LANDMARKS = ['town-hall', 'theater', 'coffee', 'apple-cottage', 'magic-house'];
+
+const PODCAST_LANDMARKS = ['radio', 'windbell-isle'];
 
 export default function Footer() {
   const { soundOn } = useTown();
   const { t } = useLanguage();
-  const [email, setEmail] = useState('');
-  const [sent, setSent] = useState(false);
-  const subscribe = trpc.town.subscribe.useMutation();
 
   return (
     <footer className="relative mt-0">
@@ -103,7 +100,34 @@ export default function Footer() {
             </div>
           </motion.div>
 
-          {/* postcards signup */}
+          {/* podcasts from summer town (replaces the newsletter signup) */}
+          <motion.div
+            initial={{ y: 30, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.5, delay: 0.2, ease: [0.22, 1.2, 0.36, 1] }}
+          >
+            <h3 className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-ink/70">
+              {t('footer.podcasts')}
+            </h3>
+            <ul className="mt-3 space-y-2">
+              {PODCAST_LANDMARKS.map((id) => {
+                const lm = LANDMARKS.find((l) => l.id === id)!;
+                return (
+                  <li key={id}>
+                    <Link
+                      to={`/?place=${id}`}
+                      className="text-sm font-bold text-ink transition-colors hover:text-white"
+                    >
+                      {t(lm.nameKey)}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </motion.div>
+
+          {/* newsletter signup — temporarily disabled, restore from git history when ready
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             whileInView={{ y: 0, opacity: 1 }}
@@ -145,6 +169,7 @@ export default function Footer() {
               <p className="mt-2 font-hand text-xl text-ink">{t('footer.newsletter.success')}</p>
             )}
           </motion.div>
+          */}
         </div>
 
         <div className="border-t border-white/40">
