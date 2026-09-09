@@ -3,10 +3,18 @@ main = "api/worker.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
-# Static assets (Vite build → dist/) served from the same Worker
+# Static assets (Vite build → dist/public/) served from the same Worker.
+# vite.config.ts sets build.outDir = "dist/public", so the trailing segment
+# is required — pointing at "./dist" alone makes every asset 404.
 [assets]
-directory = "./dist"
+directory = "./dist/public"
 binding = "STATIC"
+
+# Production hostname. The domain must already be on Cloudflare; wrangler
+# creates the DNS record + certificate on first deploy.
+routes = [
+  { pattern = "summertown.summercommences.com", custom_domain = true }
+]
 
 # D1 database for wishes, postcards, subscriptions, footprints, visits, admin tables
 # Create with:  wrangler d1 create summertown-db --location=enam:apac

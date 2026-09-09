@@ -1,4 +1,8 @@
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
+/* Hono's ExecutionContext is a superset of the Workers one (it adds
+ * `tracing`), and the Worker hands us Hono's — so type against Hono's here
+ * to avoid a structural mismatch at the call site in boot.ts. */
+import type { ExecutionContext } from "hono";
 
 export interface TrpcContext {
   req: Request;

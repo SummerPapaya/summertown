@@ -1,10 +1,9 @@
 import { z } from "zod";
-import { desc, eq, and } from "drizzle-orm";
+import { desc, eq, and, count } from "drizzle-orm";
 import { createRouter, publicQuery, writeProcedure } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applePhotos, footprints, newsletterSubs, postcards, wishes } from "@db/schema";
 import { isAdOrSuspicious } from "./lib/moderation";
-import { TRPCError } from "@trpc/server";
 
 const hexColor = z
   .string()
@@ -32,7 +31,7 @@ export const townRouter = createRouter({
     const offset = input?.cursor ?? 0;
     const limit = input?.limit ?? DEFAULT_PAGE_SIZE;
     const where = eq(wishes.status, PUBLIC_STATUS);
-    const [items, total] = await Promise.all([
+    const [items, countRows] = await Promise.all([
       db
         .select()
         .from(wishes)
@@ -40,8 +39,9 @@ export const townRouter = createRouter({
         .orderBy(desc(wishes.createdAt), desc(wishes.id))
         .limit(limit)
         .offset(offset),
-      db.$count(wishes).where(where),
+      db.select({ value: count() }).from(wishes).where(where),
     ]);
+    const total = countRows[0]?.value ?? 0;
     const nextOffset = offset + items.length;
     return { items, total, nextCursor: nextOffset < total ? nextOffset : null };
   }),
@@ -90,13 +90,11 @@ export const townRouter = createRouter({
         throw err;
       }
 
-      if (verdict.spam) {
-        throw new TRPCError({
-          code: "ACCEPTED",
-          message: `Held for review: ${verdict.reason ?? "flagged"}`,
-        });
-      }
-      return row;
+      /* Flagged rows were written with status='pending'; the public list only
+       * shows approved ones, so they simply never appear on the wall. We
+       * return normally (not an error) so the client doesn't stash the entry
+       * in its outbox and retry — that would duplicate it. */
+      return { ...row, held: verdict.spam };
     }),
 
   listPostcards: publicQuery.input(paginationInput).query(async ({ input, ctx }) => {
@@ -104,7 +102,7 @@ export const townRouter = createRouter({
     const offset = input?.cursor ?? 0;
     const limit = input?.limit ?? DEFAULT_PAGE_SIZE;
     const where = eq(postcards.status, PUBLIC_STATUS);
-    const [items, total] = await Promise.all([
+    const [items, countRows] = await Promise.all([
       db
         .select()
         .from(postcards)
@@ -112,8 +110,9 @@ export const townRouter = createRouter({
         .orderBy(desc(postcards.createdAt), desc(postcards.id))
         .limit(limit)
         .offset(offset),
-      db.$count(postcards).where(where),
+      db.select({ value: count() }).from(postcards).where(where),
     ]);
+    const total = countRows[0]?.value ?? 0;
     const nextOffset = offset + items.length;
     return { items, total, nextCursor: nextOffset < total ? nextOffset : null };
   }),
@@ -162,13 +161,11 @@ export const townRouter = createRouter({
         throw err;
       }
 
-      if (verdict.spam) {
-        throw new TRPCError({
-          code: "ACCEPTED",
-          message: `Held for review: ${verdict.reason ?? "flagged"}`,
-        });
-      }
-      return row;
+      /* Flagged rows were written with status='pending'; the public list only
+       * shows approved ones, so they simply never appear on the wall. We
+       * return normally (not an error) so the client doesn't stash the entry
+       * in its outbox and retry — that would duplicate it. */
+      return { ...row, held: verdict.spam };
     }),
 
   subscribe: publicQuery

@@ -37,14 +37,13 @@ async function uploadDataUrl(
   });
 }
 
-/** Build a public R2 URL. Configure R2 custom domain in production; the
- * `r2.dev` subdomain here is a placeholder that works out of the box. */
+/** Build a public R2 URL. Set `R2_PUBLIC_HOST` (an R2 custom domain) to serve
+ * objects straight from R2; otherwise they stream through the Worker's
+ * `/photos/*` route, which needs no extra DNS. */
 function publicUrl(env: Env, key: string): string {
   const host = (env as unknown as { R2_PUBLIC_HOST?: string }).R2_PUBLIC_HOST;
   if (host) return `https://${host}/${key}`;
-  // Fallback: serve through the Worker. Cheap for low traffic; swap for
-  // custom domain once Apple Admin traffic justifies it.
-  return `https://photos.r2.local/${key}`;
+  return `/photos/${key}`;
 }
 
 export const adminRouter = createRouter({
