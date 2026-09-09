@@ -1,0 +1,36 @@
+name = "summertown"
+main = "api/worker.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# Static assets (Vite build → dist/) served from the same Worker
+[assets]
+directory = "./dist"
+binding = "STATIC"
+
+# D1 database for wishes, postcards, subscriptions, footprints, visits, admin tables
+# Create with:  wrangler d1 create summertown-db --location=enam:apac
+# then paste the printed `database_id` below.
+[[d1_databases]]
+binding = "DB"
+database_name = "summertown-db"
+# database_id = "REPLACE_AFTER_wrangler_d1_create"
+
+# R2 for high-resolution apple-photo images (D1 row cap ~1 MB)
+# Create with:  wrangler r2 bucket create summertown-photos
+[[r2_buckets]]
+binding = "PHOTOS"
+bucket_name = "summertown-photos"
+
+[vars]
+APP_ID = "summertown-public"
+
+# Production secrets are set via `wrangler secret put NAME`:
+#   ADMIN_TOKEN   — required to mutate /api/trpc/admin.*
+#   APP_SECRET    — reserved for future internal calls
+
+# Local-only overrides live in `.dev.vars` (gitignored).
+
+# Hourly cleanup: rolls old `page_visits` and `rate_limits` rows.
+[triggers]
+crons = ["0 * * * *"]

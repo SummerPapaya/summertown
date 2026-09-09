@@ -1,0 +1,5 @@
+# Copy this file to `.dev.vars` (gitignored) and fill in real values for
+# `wrangler dev`. The values here are placeholders only.
+
+ADMIN_TOKEN=replace-with-a-long-random-string
+APP_SECRET=replace-with-another-long-random-string

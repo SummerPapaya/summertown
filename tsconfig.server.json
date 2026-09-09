@@ -4,7 +4,7 @@
     "target": "ES2022",
     "lib": ["ES2022"],
     "module": "ESNext",
-    "types": ["node"],
+    "types": ["node", "@cloudflare/workers-types"],
     "skipLibCheck": true,
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
@@ -20,5 +20,5 @@
       "@db/*": ["./db/*"]
     }
   },
-  "include": ["api", "contracts", "db"]
+  "include": ["api", "contracts", "db", "worker-configuration.d.ts"]
 }

@@ -5,16 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && esbuild api/boot.ts --platform=node --bundle --format=esm --outdir=dist --banner:js=\"import { createRequire } from 'module';const require = createRequire(import.meta.url);\"",
+    "dev:worker": "wrangler dev --local --persist-to .wrangler/state",
+    "build": "vite build && tsc -b --noEmit",
+    "build:worker": "wrangler deploy --dry-run --outdir=dist-worker",
+    "deploy": "wrangler deploy",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "NODE_ENV=production node dist/boot.js",
-    "check": "tsc -b",
+    "typecheck": "tsc -b",
     "format": "prettier --write .",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push"
+    "db:migrate:local": "wrangler d1 execute summertown-db --local --file=./db/migrations/0001_init.sql",
+    "db:migrate:remote": "wrangler d1 execute summertown-db --remote --file=./db/migrations/0001_init.sql",
+    "db:reset:local": "wrangler d1 execute summertown-db --local --command='DELETE FROM sqlite_master WHERE type=\"table\"'"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
@@ -103,6 +106,8 @@
     "esbuild": "^0.27.2",
     "prettier": "^3.7.4",
     "vitest": "^4.0.16",
-    "drizzle-kit": "^0.31.8"
+    "drizzle-kit": "^0.31.8",
+    "wrangler": "^3.114.0",
+    "@cloudflare/workers-types": "^4.20250109.0"
   }
 }

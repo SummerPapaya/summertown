@@ -12,12 +12,18 @@ dist
 *.db
 *.sqlite
 *.sqlite3
-db/migrations/*.sql
+# Note: db/migrations/*.sql are kept in git (one-shot DDL the Worker needs)
 # TypeScript cache
 *.tsbuildinfo
 # Build outputs
 dist/
 build/
+# wrangler local state
+.wrangler/
+.dev.vars
+.env.production
+# Worker build output
+dist-worker/
 # Test coverage
 coverage/
 .nyc_output/

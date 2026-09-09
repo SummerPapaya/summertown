@@ -1,18 +1,16 @@
-import { drizzle } from "drizzle-orm/mysql2";
-import { env } from "../lib/env";
+import { drizzle, type DrizzleD1Database } from "drizzle-orm/d1";
 import * as schema from "@db/schema";
 import * as relations from "@db/relations";
 
 const fullSchema = { ...schema, ...relations };
 
-let instance: ReturnType<typeof drizzle<typeof fullSchema>>;
-
-export function getDb() {
-  if (!instance) {
-    instance = drizzle(env.databaseUrl, {
-      mode: "planetscale",
-      schema: fullSchema,
-    });
-  }
-  return instance;
+/**
+ * Returns a Drizzle client bound to the request's D1 instance. We build a
+ * new client per request instead of a global singleton because the D1
+ * binding only lives on the request env.
+ */
+export function getDb(env: Env): DrizzleD1Database<typeof fullSchema> {
+  return drizzle(env.DB, { schema: fullSchema });
 }
+
+export type DbClient = ReturnType<typeof getDb>;
