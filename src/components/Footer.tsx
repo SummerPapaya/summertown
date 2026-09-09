@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import { motion } from 'framer-motion';
 import { Radio } from 'lucide-react';
 import { LANDMARKS } from '@/lib/landmarks';
+import VisitCounter from './VisitCounter';
 import { useTown } from '@/lib/town';
 import { useLanguage } from '@/lib/i18n';
 import { playStatic } from '@/lib/sound';
@@ -186,7 +187,10 @@ export default function Footer() {
               <Radio className="h-3.5 w-3.5" />
               105.5 Summer FM
             </button>
-            <span>{t('footer.bottomLine')}</span>
+            <span className="inline-flex flex-wrap items-center gap-2">
+              <VisitCounter />
+              <span>{t('footer.bottomLine')}</span>
+            </span>
           </div>
         </div>
       </div>

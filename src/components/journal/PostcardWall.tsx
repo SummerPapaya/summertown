@@ -36,6 +36,8 @@ interface StoredPostcard {
   signature: string;
   doodle: DoodleId;
   date: string;
+  /** true while the card only exists in this browser's outbox */
+  pending?: boolean;
 }
 
 interface WallPostcard extends Omit<StoredPostcard, 'doodle'> {
@@ -181,14 +183,50 @@ export default function PostcardWall() {
     [backendOk, listQuery.data, olderCards.rows, userCards, lang, t],
   );
 
-  const pinLocal = (card: StoredPostcard) => {
-    const next = [card, ...userCards].slice(0, 24);
+  const pinLocal = (card: StoredPostcard, pending = false) => {
+    const next = [{ ...card, pending }, ...userCards].slice(0, 24);
     setUserCards(next);
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify(next));
     } catch {
       /* ignore */
     }
+  };
+
+  /* re-send a postcard that never made it off this device */
+  const retryCard = (card: StoredPostcard) => {
+    addPostcard.mutate(
+      {
+        message: card.message.slice(0, 280),
+        signature: card.signature.slice(0, 60),
+        doodle: card.doodle,
+      },
+      {
+        onSuccess: () => {
+          // the server owns it now — drop it from the local outbox
+          const next = userCards.filter((c) => c.id !== card.id);
+          setUserCards(next);
+          try {
+            localStorage.setItem(STORE_KEY, JSON.stringify(next));
+          } catch {
+            /* ignore */
+          }
+          setBackendDown(false);
+          void utils.town.listPostcards.invalidate();
+          toast(t('journal.postcards.pinnedToast'), {
+            description: t('journal.postcards.pinnedToastDesc'),
+          });
+        },
+        onError: () => {
+          toast(t('journal.postcards.undeliveredToast'), {
+            action: {
+              label: t('journal.postcards.undeliveredAction'),
+              onClick: () => void retryCard(card),
+            },
+          });
+        },
+      },
+    );
   };
 
   const pinCard = (card: StoredPostcard) => {
@@ -226,8 +264,8 @@ export default function PostcardWall() {
         // the saved one, and the next mount refetches fresh rows anyway
         // (swapping it in would remount the card mid-slam-animation)
         onError: () => {
-          // network/static-build failure: roll back the optimistic card and
-          // silently persist to localStorage instead (no error toast)
+          // network failure: roll back the optimistic card, park it in the
+          // local outbox, and tell the visitor it hasn't reached the wall
           utils.town.listPostcards.setData(undefined, (old) =>
             old
               ? {
@@ -238,8 +276,14 @@ export default function PostcardWall() {
               : old,
           );
           setBackendDown(true);
-          pinLocal(card);
+          pinLocal(card, true);
           setJustPinned(card.id);
+          toast(t('journal.postcards.undeliveredToast'), {
+            action: {
+              label: t('journal.postcards.undeliveredAction'),
+              onClick: () => void retryCard(card),
+            },
+          });
         },
       },
     );

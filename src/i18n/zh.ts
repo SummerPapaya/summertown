@@ -254,6 +254,7 @@ export const zh: DeepL10n<Messages> = {
     },
     copyright: '© 夏天镇',
     bottomLine: '14 个地标 · 1 条长堤',
+    visitCount: '{count} 次到访',
   },
   isle: {
     pierHero: {
@@ -295,6 +296,9 @@ export const zh: DeepL10n<Messages> = {
       wishButton: '把愿望系上去',
       charsLeft: '还能写 {n} 个字 · 愿望挂在这儿，人人都看得见',
       wishToast: '愿望系好了——风会读到的。',
+      undeliveredToast: '暂存在这台设备——还没系上风铃绳。',
+      undeliveredAction: '重试',
+      undeliveredBadge: '未系上',
       seedWishes: [
         '希望潮水把我的蓝色小桶送回来',
         '希望面包店的蜜瓜包永远卖不完',
@@ -408,6 +412,9 @@ export const zh: DeepL10n<Messages> = {
       write: '写张明信片',
       pinnedToast: '钉上墙啦！',
       pinnedToastDesc: '幻想邮筒又寄送了一回。',
+      undeliveredToast: '暂存在这台设备——还没寄到墙上。',
+      undeliveredAction: '重试',
+      undeliveredBadge: '未送达',
       freshBadge: '刚从邮筒取出',
       dialog: {
         title: '写张明信片',

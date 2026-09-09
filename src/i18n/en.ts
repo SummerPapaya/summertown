@@ -302,6 +302,7 @@ export const en = {
     },
     copyright: '© Summer Town',
     bottomLine: '14 landmarks · 1 long pier',
+    visitCount: '{count} visits',
   },
   isle: {
     pierHero: {
@@ -349,6 +350,9 @@ export const en = {
       wishButton: 'Tie a wish to the bells',
       charsLeft: '{n} characters left · wishes hang here for everyone',
       wishToast: 'Wish tied — the wind will read it.',
+      undeliveredToast: 'Kept on this device — not tied to the rope yet.',
+      undeliveredAction: 'Retry',
+      undeliveredBadge: 'not tied',
       seedWishes: [
         'for the tide to bring back my blue bucket',
         'that the bakery never runs out of melon pan',
@@ -462,6 +466,9 @@ export const en = {
       write: 'Write a postcard',
       pinnedToast: 'Pinned to the wall!',
       pinnedToastDesc: 'The imaginary mailbox delivers again.',
+      undeliveredToast: 'Kept on this device — not on the wall yet.',
+      undeliveredAction: 'Retry',
+      undeliveredBadge: 'not delivered',
       freshBadge: 'fresh from the mailbox',
       dialog: {
         title: 'Write a postcard',

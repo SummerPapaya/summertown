@@ -28,6 +28,8 @@ interface Wish {
   text: string;
   accent: string;
   fresh?: boolean;
+  /** true while the wish only exists in this browser's outbox */
+  pending?: boolean;
 }
 
 function loadWishes(): Wish[] {
@@ -46,6 +48,7 @@ function loadWishes(): Wish[] {
             text: w.text.slice(0, 60),
             accent:
               typeof w.accent === 'string' ? w.accent : WISH_ACCENTS[i % WISH_ACCENTS.length],
+            pending: (w as { pending?: unknown }).pending === true,
           }));
       }
     }
@@ -187,7 +190,9 @@ export default function Pavilion() {
     try {
       localStorage.setItem(
         WISHES_KEY,
-        JSON.stringify(userWishes.map(({ text, accent }) => ({ text, accent }))),
+        JSON.stringify(
+          userWishes.map(({ text, accent, pending }) => ({ text, accent, pending })),
+        ),
       );
     } catch {
       /* ignore */
@@ -203,6 +208,30 @@ export default function Pavilion() {
     setWobble((w) => ({ i, tick: w.tick + 1 }));
     setRings((r) => r + 1);
     if (soundOn) playBellNote(i);
+  };
+
+  /* re-send a wish that never made it off this device */
+  const retryWish = (wish: Wish) => {
+    addWishMutation.mutate(
+      { text: wish.text, accent: wish.accent },
+      {
+        onSuccess: () => {
+          // the server owns it now — drop it from the local outbox
+          setUserWishes((w) => w.filter((x) => x.id !== wish.id));
+          setOffline(false);
+          void utils.town.listWishes.invalidate();
+          toast(t('isle.pavilion.wishToast'));
+        },
+        onError: () => {
+          toast(t('isle.pavilion.undeliveredToast'), {
+            action: {
+              label: t('isle.pavilion.undeliveredAction'),
+              onClick: () => void retryWish(wish),
+            },
+          });
+        },
+      },
+    );
   };
 
   const addWish = (e: FormEvent) => {
@@ -234,7 +263,9 @@ export default function Pavilion() {
           void utils.town.listWishes.invalidate();
         },
         onError: () => {
-          // backend unreachable — keep the wish on this device instead
+          // Backend unreachable: park the wish in the local outbox and say
+          // so out loud, with a retry, instead of failing silently.
+          const localId = `u${Date.now()}`;
           setOffline(true);
           utils.town.listWishes.setData(undefined, (old) =>
             old
@@ -245,7 +276,13 @@ export default function Pavilion() {
                 }
               : old,
           );
-          setUserWishes((w) => [...w, { id: `u${Date.now()}`, text, accent, fresh: true }]);
+          setUserWishes((w) => [...w, { id: localId, text, accent, fresh: true, pending: true }]);
+          toast(t('isle.pavilion.undeliveredToast'), {
+            action: {
+              label: t('isle.pavilion.undeliveredAction'),
+              onClick: () => void retryWish({ id: localId, text, accent, pending: true }),
+            },
+          });
         },
       },
     );
