@@ -219,6 +219,9 @@ export const adminRouter = createRouter({
           until: dateString.optional(),
           maxPages: z.number().int().positive().max(200).optional(),
           video: z.boolean().optional(),
+          /** Start a back-fill over from the newest post, ignoring the saved
+           * paging cursor. */
+          fresh: z.boolean().optional(),
         })
         .optional(),
     )
@@ -229,6 +232,7 @@ export const adminRouter = createRouter({
         until: input?.until,
         maxPages: input?.maxPages,
         video: input?.video,
+        fresh: input?.fresh === true,
       });
     }),
 

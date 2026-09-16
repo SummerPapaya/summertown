@@ -206,6 +206,28 @@ function dayOf(iso: string | undefined): string | null {
   return new Date(ms + 8 * 3_600_000).toISOString().slice(0, 10);
 }
 
+/** One page of the signed-in user's own timeline, newest first.
+ *
+ * Exposed page-by-page (rather than "give me N pages") so a back-fill can
+ * stream: import what fits in this invocation, stash `loadMoreKey`, resume
+ * on the next call. A Worker on the free plan only gets 50 subrequests, so
+ * asking for 100 pages up front would blow the budget before a single photo
+ * is stored. */
+export async function fetchPersonalPage(
+  env: unknown,
+  tokens: JikeTokens,
+  username: string,
+  limit: number,
+  loadMoreKey: unknown = null,
+): Promise<{ data?: JikePost[]; loadMoreKey?: unknown }> {
+  return call<{ data?: JikePost[]; loadMoreKey?: unknown }>(
+    env,
+    "/personalUpdate/single",
+    { username, limit, loadMoreKey },
+    tokens,
+  );
+}
+
 /**
  * Page through the signed-in user's own posts, newest first.
  *

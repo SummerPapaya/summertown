@@ -16,6 +16,12 @@
  *  - Images/video are copied into R2 rather than hot-linked, because platform
  *    CDN URLs expire and block hot-linking.
  *
+ * Back-filling months of history does not fit in one invocation: a Worker on
+ * the free plan gets 50 subrequests, and every image, clip and D1 statement
+ * spends one. So the walk is streamed — import what fits, stash the
+ * `loadMoreKey` cursor, resume on the next call. Imports de-duplicate on the
+ * post id, which makes re-reading a page harmless.
+ *
  * Any failure is swallowed and logged: a broken import must never take the
  * site down.
  */
@@ -25,7 +31,7 @@ import { getDb } from "../queries/connection";
 import { applePhotos, settings } from "@db/schema";
 import {
   bestPictureUrl,
-  listMyPosts,
+  fetchPersonalPage,
   listPostsFromProfile,
   liveVideoUrl,
   readTokensFromEnv,
@@ -40,6 +46,13 @@ const MARKERS = ["🍎", "#一颗苹果"];
 
 const SOURCE = "jike";
 const MAX_PAGES = 2;
+const PAGE_SIZE = 20;
+
+/** Workers on the free plan allow 50 subrequests per invocation; leave a
+ * little head-room for the D1 statements around the loop. */
+const MAX_CALLS = 45;
+
+const CURSOR_KEY = "jike_cursor";
 
 /** The owner's 即刻 id. It is public (it is what `okjk.co` links resolve to),
  * and only the matching public timeline is ever read. Override with the
@@ -57,11 +70,14 @@ export interface SyncOptions {
    * than this day show up. Requires `JIKE_ACCESS_TOKEN` — the public profile
    * page only ever carries the newest ~10 posts. */
   until?: string;
-  /** Page cap for the authenticated walk (20 posts per page). */
+  /** Page cap for the authenticated walk (20 posts per page). The call budget
+   * usually bites first. */
   maxPages?: number;
   /** Live Photo clips run ~5 MB each; a months-long back-fill can skip them
    * and keep only the stills. */
   video?: boolean;
+  /** Ignore the saved cursor and start paging from the newest post again. */
+  fresh?: boolean;
 }
 
 export interface SyncSample {
@@ -71,6 +87,17 @@ export interface SyncSample {
   content: string;
   picture: unknown;
   liveVideoUrl: string | null;
+}
+
+/** What the run could see, so a `imported: 0` result is self-explaining. */
+export interface SyncDiag {
+  mode: "api" | "profile";
+  hasAccessToken: boolean;
+  hasRefreshToken: boolean;
+  hasDeviceId: boolean;
+  username: string;
+  pages: number;
+  calls: number;
 }
 
 export interface SyncResult {
@@ -84,10 +111,11 @@ export interface SyncResult {
   live: number;
   skipped: number;
   reason?: string;
-  /** Stopped on the time budget rather than running out of posts: call again
+  /** Stopped on the call budget rather than running out of posts: call again
    * to continue where this left off. */
   stoppedEarly?: boolean;
   samples?: SyncSample[];
+  diag?: SyncDiag;
 }
 
 /** YYYY-MM-DD in Asia/Shanghai — the album's timezone. */
@@ -105,6 +133,16 @@ function postDate(post: JikePost): string | null {
 function matches(post: JikePost): boolean {
   const text = post.content ?? "";
   return MARKERS.some((m) => text.includes(m));
+}
+
+/** Oldest first, so a catch-up posted before the real one still finds its
+ * own day free. */
+function oldestFirst(posts: JikePost[]): JikePost[] {
+  return posts.slice().sort(
+    (a, b) =>
+      Date.parse(a.createdAt ?? a.actionTime ?? "") -
+      Date.parse(b.createdAt ?? b.actionTime ?? ""),
+  );
 }
 
 function shiftDays(date: string, delta: number): string {
@@ -177,6 +215,19 @@ async function putSetting(
       target: settings.key,
       set: { value, updatedAt: new Date() },
     });
+}
+
+async function delSetting(db: ReturnType<typeof getDb>, key: string) {
+  await db.delete(settings).where(eq(settings.key, key));
+}
+
+function parseCursor(raw: string | null): unknown {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    return null;
+  }
 }
 
 /** Keep a probe payload small: clip long strings, cap arrays/objects. */
@@ -288,11 +339,11 @@ export async function syncJikeApples(
   /* A probe is a dry run: it reports what the source handed back without
    * writing anything to R2 or D1. */
   const dryRun = opts.probe === true;
-  /* Stay well inside the Worker's CPU budget; a long back-fill resumes on the
-   * next call because imports are de-duplicated by post id. */
-  const startedAt = Date.now();
-  const budgetMs = 22_000;
   const wantVideo = opts.video !== false;
+  const until = opts.until;
+  /* Only a back-fill walks far enough to need a cursor; the daily sync always
+   * starts from the newest post. */
+  const useCursor = Boolean(until);
 
   const e = env as unknown as {
     PHOTOS: { put: (k: string, v: ArrayBuffer, o?: unknown) => Promise<unknown> };
@@ -303,119 +354,219 @@ export async function syncJikeApples(
   const host = e.R2_PUBLIC_HOST;
   const samples: SyncSample[] = [];
 
+  let calls = 0;
+  const diag: SyncDiag = {
+    mode: tokens.accessToken ? "api" : "profile",
+    hasAccessToken: Boolean(tokens.accessToken),
+    hasRefreshToken: Boolean(tokens.refreshToken),
+    hasDeviceId: Boolean(fromEnv.deviceId),
+    username,
+    pages: 0,
+    calls: 0,
+  };
+  result.diag = diag;
+
+  const rows = await db
+    .select({ date: applePhotos.date, sourceId: applePhotos.sourceId })
+    .from(applePhotos);
+  calls++;
+  const taken = new Set(rows.map((r) => r.date));
+  const knownIds = new Set(
+    rows.map((r) => r.sourceId).filter((v): v is string => Boolean(v)),
+  );
+
+  type Outcome = "imported" | "skipped" | "budget";
+
+  const handle = async (post: JikePost): Promise<Outcome> => {
+    const id = post.id;
+    const date = pickAlbumDate(post, taken);
+    const pic = post.pictures?.[0];
+    const url = pic ? bestPictureUrl(pic) : null;
+    const clipUrl = wantVideo ? liveVideoUrl(post) : null;
+
+    if (opts.probe) {
+      samples.push({
+        id: id ?? null,
+        postDate: postDate(post),
+        albumDate: date,
+        content: (post.content ?? "").slice(0, 160),
+        picture: trimDeep(pic),
+        liveVideoUrl: clipUrl,
+      });
+    }
+
+    if (!id || !date || !url || knownIds.has(id)) {
+      result.skipped++;
+      return "skipped";
+    }
+    if (dryRun) {
+      /* Keep the report honest about where the next real run would put
+       * each post, but touch nothing. */
+      taken.add(date);
+      return "skipped";
+    }
+    /* Reserve room for the still plus its thumbnail before starting, so a
+     * post is never stored half-finished. */
+    if (calls + 3 > MAX_CALLS) return "budget";
+
+    const image = await copyToR2(
+      e.PHOTOS,
+      url,
+      `apples/${date}/image`,
+      "image",
+      host,
+    );
+    calls++;
+    if (!image) {
+      result.skipped++;
+      return "skipped";
+    }
+    /* A 400 px copy for the grid; the 1500 px one is only ever pulled
+     * when a photo is opened. Cheap insurance against a year of photos
+     * costing a visitor a gigabyte. */
+    const thumbUrl = pic ? thumbPictureUrl(pic) : null;
+    let thumb: { key: string; url: string } | null = null;
+    if (thumbUrl && calls + 2 <= MAX_CALLS) {
+      calls++;
+      thumb = await copyToR2(
+        e.PHOTOS,
+        thumbUrl,
+        `apples/${date}/thumb`,
+        "image",
+        host,
+      );
+    }
+    let clip: { key: string; url: string } | null = null;
+    if (clipUrl && calls + 1 <= MAX_CALLS) {
+      calls++;
+      clip = await copyToR2(
+        e.PHOTOS,
+        clipUrl,
+        `apples/${date}/video`,
+        "video",
+        host,
+      );
+    }
+
+    await db.insert(applePhotos).values({
+      date,
+      description: (post.content ?? "").slice(0, 500),
+      imageKey: image.key,
+      imageUrl: image.url,
+      thumbKey: thumb?.key ?? null,
+      thumbUrl: thumb?.url ?? null,
+      videoKey: clip?.key ?? null,
+      videoUrl: clip?.url ?? null,
+      source: SOURCE,
+      sourceId: id,
+    });
+    calls++;
+    taken.add(date);
+    knownIds.add(id);
+    result.imported++;
+    if (date !== postDate(post)) result.backfilled++;
+    if (clip) result.live++;
+    return "imported";
+  };
+
   /* One retry after a refresh — access tokens expire every few weeks. */
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       await putSetting(db, "jike_username", username);
+      calls++;
 
-      const posts = tokens.accessToken
-        ? await listMyPosts(
+      let stopped = false;
+      let finished = false;
+
+      if (!tokens.accessToken) {
+        const posts = await listPostsFromProfile(username);
+        calls++;
+        result.fetched += posts.length;
+        const batch = oldestFirst(posts.filter(matches));
+        result.matched += batch.length;
+        for (const post of batch) {
+          if ((await handle(post)) === "budget") {
+            stopped = true;
+            break;
+          }
+        }
+        finished = true;
+      } else {
+        const maxPages = opts.maxPages ?? MAX_PAGES;
+        let key: unknown =
+          useCursor && !opts.fresh
+            ? parseCursor(await getSetting(db, CURSOR_KEY))
+            : null;
+        if (useCursor && opts.fresh) await delSetting(db, CURSOR_KEY);
+
+        for (let page = 0; page < maxPages; page++) {
+          if (calls + 4 > MAX_CALLS) {
+            stopped = true;
+            break;
+          }
+          const res = await fetchPersonalPage(
             env,
             tokens,
             username,
-            opts.maxPages ?? MAX_PAGES,
-            20,
-            opts.until,
-          )
-        : await listPostsFromProfile(username);
-      result.fetched = posts.length;
+            PAGE_SIZE,
+            key,
+          );
+          calls++;
+          diag.pages++;
 
-      /* Oldest first, so a catch-up posted before the real one still finds
-       * its own day free. */
-      const wanted = posts
-        .filter(matches)
-        .slice()
-        .sort(
-          (a, b) =>
-            Date.parse(a.createdAt ?? a.actionTime ?? "") -
-            Date.parse(b.createdAt ?? b.actionTime ?? ""),
-        );
-      result.matched = wanted.length;
+          const pagePosts = res.data ?? [];
+          result.fetched += pagePosts.length;
+          const batch = oldestFirst(
+            pagePosts.filter((p) => {
+              if (!matches(p)) return false;
+              const day = postDate(p);
+              return !until || !day || day >= until;
+            }),
+          );
+          result.matched += batch.length;
 
-      const rows = await db
-        .select({ date: applePhotos.date, sourceId: applePhotos.sourceId })
-        .from(applePhotos);
-      const taken = new Set(rows.map((r) => r.date));
-      const knownIds = new Set(
-        rows.map((r) => r.sourceId).filter((v): v is string => Boolean(v)),
-      );
+          for (const post of batch) {
+            if ((await handle(post)) === "budget") {
+              stopped = true;
+              break;
+            }
+          }
 
-      for (const post of wanted) {
-        if (!dryRun && Date.now() - startedAt > budgetMs) {
-          result.stoppedEarly = true;
-          break;
+          if (stopped) {
+            /* Resume from the page we were reading: already-imported posts
+             * de-duplicate on their id. */
+            if (useCursor && !dryRun) {
+              await putSetting(db, CURSOR_KEY, JSON.stringify(key ?? null));
+              calls++;
+            }
+            break;
+          }
+
+          const reached = until
+            ? pagePosts.some((p) => {
+                const day = postDate(p);
+                return Boolean(day) && day! < until;
+              })
+            : false;
+          if (reached || !res.loadMoreKey || pagePosts.length === 0) {
+            finished = true;
+            break;
+          }
+          key = res.loadMoreKey;
+          if (useCursor && !dryRun) {
+            await putSetting(db, CURSOR_KEY, JSON.stringify(key ?? null));
+            calls++;
+          }
         }
-
-        const id = post.id;
-        const date = pickAlbumDate(post, taken);
-        const pic = post.pictures?.[0];
-        const url = pic ? bestPictureUrl(pic) : null;
-        const clipUrl = wantVideo ? liveVideoUrl(post) : null;
-
-        if (opts.probe) {
-          samples.push({
-            id: id ?? null,
-            postDate: postDate(post),
-            albumDate: date,
-            content: (post.content ?? "").slice(0, 160),
-            picture: trimDeep(pic),
-            liveVideoUrl: clipUrl,
-          });
-        }
-
-        if (!id || !date || !url || knownIds.has(id)) {
-          result.skipped++;
-          continue;
-        }
-        if (dryRun) {
-          /* Keep the report honest about where the next real run would put
-           * each post, but touch nothing. */
-          taken.add(date);
-          continue;
-        }
-
-        const image = await copyToR2(
-          e.PHOTOS,
-          url,
-          `apples/${date}/image`,
-          "image",
-          host,
-        );
-        if (!image) {
-          result.skipped++;
-          continue;
-        }
-        /* A 400 px copy for the grid; the 1500 px one is only ever pulled
-         * when a photo is opened. Cheap insurance against a year of photos
-         * costing a visitor a gigabyte. */
-        const thumbUrl = pic ? thumbPictureUrl(pic) : null;
-        const thumb = thumbUrl
-          ? await copyToR2(e.PHOTOS, thumbUrl, `apples/${date}/thumb`, "image", host)
-          : null;
-        const clip = clipUrl
-          ? await copyToR2(e.PHOTOS, clipUrl, `apples/${date}/video`, "video", host)
-          : null;
-
-        await db.insert(applePhotos).values({
-          date,
-          description: (post.content ?? "").slice(0, 500),
-          imageKey: image.key,
-          imageUrl: image.url,
-          thumbKey: thumb?.key ?? null,
-          thumbUrl: thumb?.url ?? null,
-          videoKey: clip?.key ?? null,
-          videoUrl: clip?.url ?? null,
-          source: SOURCE,
-          sourceId: id,
-        });
-        taken.add(date);
-        knownIds.add(id);
-        result.imported++;
-        if (date !== postDate(post)) result.backfilled++;
-        if (clip) result.live++;
       }
 
+      if (stopped) result.stoppedEarly = true;
+      if (finished && useCursor && !dryRun) {
+        await delSetting(db, CURSOR_KEY);
+        calls++;
+      }
       if (opts.probe) result.samples = samples;
+      diag.calls = calls;
       result.ok = true;
       return result;
     } catch (err) {
@@ -430,6 +581,7 @@ export async function syncJikeApples(
           continue;
         }
       }
+      diag.calls = calls;
       result.reason = err instanceof Error ? err.message : String(err);
       console.warn("jike sync failed:", err);
       return result;
