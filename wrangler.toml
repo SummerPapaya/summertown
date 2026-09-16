@@ -50,6 +50,9 @@ APP_ID = "summertown-public"
 
 # Local-only overrides live in `.dev.vars` (gitignored).
 
-# Hourly cleanup: rolls old `page_visits` and `rate_limits` rows.
+# Cron triggers (UTC):
+#   "0 * * * *"    hourly — rolls old `page_visits` and `rate_limits` rows
+#   "0 15 * * *"   daily at 23:00 Asia/Shanghai — imports the owner's own 🍎
+#                  posts from 即刻 (no-op unless JIKE_* secrets are set)
 [triggers]
-crons = ["0 * * * *"]
+crons = ["0 * * * *", "0 15 * * *"]

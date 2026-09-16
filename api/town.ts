@@ -208,8 +208,17 @@ export const townRouter = createRouter({
     }),
 
   listApplePhotos: publicQuery.query(async ({ ctx }) => {
+    /* Only the display fields: R2 keys and import bookkeeping stay on the
+     * server, and a back-filled year is ~290 rows, so trimming matters. */
     return getDb(ctx.env)
-      .select()
+      .select({
+        id: applePhotos.id,
+        date: applePhotos.date,
+        description: applePhotos.description,
+        imageUrl: applePhotos.imageUrl,
+        thumbUrl: applePhotos.thumbUrl,
+        videoUrl: applePhotos.videoUrl,
+      })
       .from(applePhotos)
       .orderBy(desc(applePhotos.date));
   }),

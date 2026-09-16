@@ -21,6 +21,17 @@ export default {
     ctx: ExecutionContext,
   ): Promise<void> {
     const { handleScheduled } = await import("./cron/cleanup");
-    return handleScheduled(controller, env, ctx);
+    await handleScheduled(controller, env, ctx);
+
+    /* Daily import of the owner's own 🍎 posts from 即刻. Fully optional —
+     * with no JIKE_* secrets it returns immediately, and errors are swallowed
+     * inside the sync so a broken token can never break the cleanup above.
+     * Only the daily entry triggers it; the hourly one is cleanup-only. */
+    if (controller.cron !== "0 15 * * *") return;
+    const { syncJikeApples } = await import("./cron/jikeSync");
+    const result = await syncJikeApples(env);
+    console.log(
+      `jike sync: fetched=${result.fetched} matched=${result.matched} imported=${result.imported} skipped=${result.skipped}${result.reason ? ` reason=${result.reason}` : ""}`,
+    );
   },
 };

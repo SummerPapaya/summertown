@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { desc, eq, inArray } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
 import { createRouter, adminProcedure } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applePhotos, newsletterSubs, postcards, wishes } from "@db/schema";
@@ -34,6 +35,20 @@ async function uploadDataUrl(
   const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
   await bucket.put(key, bytes, {
     httpMetadata: { contentType: contentType ?? "application/octet-stream" },
+  });
+}
+
+/** Copy an R2 object so a photo can be re-dated without losing its media. */
+async function copyObject(
+  bucket: R2Bucket,
+  from: string,
+  to: string,
+): Promise<void> {
+  if (!from || from === to) return;
+  const obj = await bucket.get(from);
+  if (!obj) return;
+  await bucket.put(to, await obj.arrayBuffer(), {
+    httpMetadata: obj.httpMetadata,
   });
 }
 
@@ -72,9 +87,17 @@ export const adminRouter = createRouter({
   upsertApplePhoto: adminProcedure
     .input(
       z.object({
+        /* `id` makes an edit follow the row instead of the date, which is what
+         * lets an entry be *moved* into an empty day (a catch-up 即刻 post that
+         * landed on the wrong one, say). Without it the row is matched by
+         * date, so changing the date would create a second entry. */
+        id: z.number().int().positive().optional(),
         date: dateString,
         description: z.string().max(500).default(""),
-        image: imageDataUrl,
+        /* Optional so an edit can change only the description: when omitted,
+         * the existing R2 object for that date is kept. Required in practice
+         * when creating a new date (guarded below). */
+        image: imageDataUrl.optional(),
         video: videoDataUrl.optional(),
       }),
     )
@@ -83,38 +106,91 @@ export const adminRouter = createRouter({
       const env = ctx.env;
       const imageKey = `apples/${input.date}/image`;
       const videoKey = `apples/${input.date}/video`;
+      const thumbKey = `apples/${input.date}/thumb`;
 
-      await uploadDataUrl(env.PHOTOS, imageKey, input.image, "image/jpeg");
+      const byId = input.id
+        ? await db.query.applePhotos.findFirst({
+            where: eq(applePhotos.id, input.id),
+          })
+        : undefined;
+      const existing =
+        byId ??
+        (await db.query.applePhotos.findFirst({
+          where: eq(applePhotos.date, input.date),
+        }));
+
+      if (!existing && !input.image) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "A photo is required when adding a new date",
+        });
+      }
+
+      /* Moving to a taken day would silently duplicate the album entry. */
+      if (existing && existing.date !== input.date) {
+        const clash = await db.query.applePhotos.findFirst({
+          where: eq(applePhotos.date, input.date),
+        });
+        if (clash) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `${input.date} already has an apple — move or delete it first`,
+          });
+        }
+      }
+
+      /* Re-upload only what was supplied; untouched media keeps its object —
+       * or, when the date changed, is copied to the new day's key. */
+      let finalImageKey = existing?.imageKey ?? imageKey;
+      let finalVideoKey = existing?.videoKey ?? null;
+      if (input.image) {
+        await uploadDataUrl(env.PHOTOS, imageKey, input.image, "image/jpeg");
+        finalImageKey = imageKey;
+      } else if (existing && existing.date !== input.date && existing.imageKey) {
+        await copyObject(env.PHOTOS, existing.imageKey, imageKey);
+        finalImageKey = imageKey;
+      }
       if (input.video) {
         await uploadDataUrl(env.PHOTOS, videoKey, input.video, "video/quicktime");
+        finalVideoKey = videoKey;
+      } else if (existing && existing.date !== input.date && existing.videoKey) {
+        await copyObject(env.PHOTOS, existing.videoKey, videoKey);
+        finalVideoKey = videoKey;
+      }
+      /* Hand-uploaded photos have no small copy (the browser would have to
+       * re-encode them); the album falls back to the full image for those.
+       * Imported and re-dated entries keep or carry their thumbnail. */
+      let finalThumbKey = existing?.thumbKey ?? null;
+      if (existing && existing.date !== input.date && existing.thumbKey) {
+        await copyObject(env.PHOTOS, existing.thumbKey, thumbKey);
+        finalThumbKey = thumbKey;
       }
 
       const values = {
         date: input.date,
         description: input.description,
-        imageKey,
-        imageUrl: publicUrl(env, imageKey),
-        videoKey: input.video ? videoKey : null,
-        videoUrl: input.video ? publicUrl(env, videoKey) : null,
+        imageKey: finalImageKey,
+        imageUrl: publicUrl(env, finalImageKey),
+        thumbKey: finalThumbKey,
+        thumbUrl: finalThumbKey ? publicUrl(env, finalThumbKey) : null,
+        videoKey: finalVideoKey,
+        videoUrl: finalVideoKey ? publicUrl(env, finalVideoKey) : null,
         updatedAt: new Date(),
       };
 
       /* SQLite has no native `ON CONFLICT … DO UPDATE`, so we do a small
        * upsert by hand — keeps the surface portable between D1 and local
        * better-sqlite3 drivers. */
-      const existing = await db.query.applePhotos.findFirst({
-        where: eq(applePhotos.date, input.date),
-      });
       let row;
       if (existing) {
         await db
           .update(applePhotos)
           .set(values)
-          .where(eq(applePhotos.date, input.date));
+          .where(eq(applePhotos.id, existing.id));
         [row] = await db
           .select()
           .from(applePhotos)
-          .where(eq(applePhotos.date, input.date))
+          .where(eq(applePhotos.id, existing.id))
           .limit(1);
       } else {
         [row] = await db.insert(applePhotos).values(values).returning();
@@ -127,6 +203,33 @@ export const adminRouter = createRouter({
     .mutation(async ({ input, ctx }) => {
       await getDb(ctx.env).delete(applePhotos).where(eq(applePhotos.id, input.id));
       return { ok: true };
+    }),
+
+  /* Run the 即刻 import immediately. The daily Cron Trigger does this too,
+   * but waiting a day to find out whether the token works is miserable.
+   * `probe: true` imports nothing — it reports what the API returned (above
+   * all, whether a Live Photo clip is present) so field names can be checked
+   * against a live account. */
+  syncJike: adminProcedure
+    .input(
+      z
+        .object({
+          probe: z.boolean().optional(),
+          /** Back-fill stop date; needs JIKE_ACCESS_TOKEN. */
+          until: dateString.optional(),
+          maxPages: z.number().int().positive().max(200).optional(),
+          video: z.boolean().optional(),
+        })
+        .optional(),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { syncJikeApples } = await import("./cron/jikeSync");
+      return syncJikeApples(ctx.env, {
+        probe: input?.probe === true,
+        until: input?.until,
+        maxPages: input?.maxPages,
+        video: input?.video,
+      });
     }),
 
   /* --- Moderation queue --- */

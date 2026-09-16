@@ -134,8 +134,19 @@ export const applePhotos = sqliteTable(
     description: text("description").notNull().default(""),
     imageKey: text("image_key").notNull(),
     imageUrl: text("image_url").notNull(),
+    /* Small (≈400 px) copy used by the calendar grid and the polaroid board.
+     * The full-size `imageUrl` is only fetched when a photo is opened, which
+     * keeps a back-filled album (~290 entries) light on mobile data.
+     * Null for hand-uploaded photos — the client falls back to `imageUrl`. */
+    thumbKey: text("thumb_key"),
+    thumbUrl: text("thumb_url"),
     videoKey: text("video_key"),
     videoUrl: text("video_url"),
+    /* Where the photo came from: null = uploaded by hand in /apple-admin,
+     * "jike" = imported from the owner's 即刻 posts. `sourceId` is the
+     * platform's post id and is what we de-duplicate imports on. */
+    source: text("source"),
+    sourceId: text("source_id"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch() * 1000)`),
@@ -143,11 +154,25 @@ export const applePhotos = sqliteTable(
       .notNull()
       .default(sql`(unixepoch() * 1000)`),
   },
-  (t) => [uniqueIndex("apple_photos_date_unique").on(t.date)],
+  (t) => [
+    uniqueIndex("apple_photos_date_unique").on(t.date),
+    uniqueIndex("apple_photos_source_id_unique").on(t.sourceId),
+  ],
 );
 
 export type ApplePhoto = typeof applePhotos.$inferSelect;
 export type InsertApplePhoto = typeof applePhotos.$inferInsert;
+
+/* Tiny key/value store for runtime-mutable config — currently used to keep
+ * refreshed 即刻 (Jike) tokens, since a Worker cannot rewrite its own
+ * secrets. Absent rows simply fall back to the bound secret. */
+export const settings = sqliteTable("settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .default(sql`(unixepoch() * 1000)`),
+});
 
 /* Rate-limit buckets (fallback). In production we use an in-memory bucket
  * inside the Worker; this table exists so migrations stay honest if we

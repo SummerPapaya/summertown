@@ -7,13 +7,18 @@ import { prettyDate, seededRandom } from '@/lib/apple';
 import { useLanguage } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
-/** Shape of one row returned by town.listApplePhotos. */
+/** Shape of one row returned by town.listApplePhotos.
+ * Images/videos live in R2; the row carries public URLs (`/photos/...`
+ * or an R2 custom domain), not base64 payloads. */
 interface ApplePhotoData {
   id: number;
   date: string; // YYYY-MM-DD
   description: string;
-  image: string; // base64 data URL
-  video: string | null; // base64 data URL
+  imageUrl: string;
+  /** ~400 px copy for grids. Null for hand-uploaded photos — callers must
+   * fall back to `imageUrl`. */
+  thumbUrl: string | null;
+  videoUrl: string | null;
 }
 
 const APPLE_RED = '#E8563F';
@@ -82,11 +87,13 @@ function ZoomModal({ photo, onClose }: { photo: ApplePhotoData; onClose: () => v
           <X className="h-4 w-4" />
         </button>
         <div className="relative overflow-hidden rounded-sm bg-cream">
-          {photo.video ? (
+          {photo.videoUrl ? (
             <>
               <video
-                src={photo.video}
-                poster={photo.image}
+                src={photo.videoUrl}
+                /* The grid already cached the small copy, so the poster costs
+                 * nothing extra — using the 1500 px one would. */
+                poster={photo.thumbUrl ?? photo.imageUrl}
                 autoPlay
                 muted
                 loop
@@ -99,7 +106,7 @@ function ZoomModal({ photo, onClose }: { photo: ApplePhotoData; onClose: () => v
             </>
           ) : (
             <img
-              src={photo.image}
+              src={photo.imageUrl}
               alt={photo.description || t('apple.photoAlt')}
               className="max-h-[60vh] w-full object-cover"
             />
@@ -113,6 +120,82 @@ function ZoomModal({ photo, onClose }: { photo: ApplePhotoData; onClose: () => v
         </p>
       </motion.div>
     </motion.div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Month navigation — shared by the calendar and the polaroid board     */
+/* ------------------------------------------------------------------ */
+
+function MonthNav({
+  year,
+  month,
+  onShift,
+  months,
+  value,
+  onJump,
+}: {
+  year: number;
+  month: number; // 0-11
+  onShift: (delta: number) => void;
+  /** Months that actually hold apples (`YYYY-MM`, newest first). When given,
+   *  a jump list is rendered — with a year of photos, arrows alone would mean
+   *  a dozen clicks to reach last December. */
+  months?: string[];
+  value?: string;
+  onJump?: (value: string) => void;
+}) {
+  const { t } = useLanguage();
+  const label = (key: string) => {
+    const [y, m] = key.split('-');
+    return t('apple.monthTitle', {
+      month: t(`apple.months.${Number(m) - 1}`),
+      year: y,
+    });
+  };
+
+  return (
+    <div className="mb-4">
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => onShift(-1)}
+          aria-label={t('apple.prevMonth')}
+          className="flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-white bg-cream text-ink shadow-md transition-transform hover:-translate-y-0.5 hover:scale-105"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <h2
+          className="font-display text-2xl font-semibold sm:text-3xl"
+          style={{ color: APPLE_RED }}
+        >
+          {t('apple.monthTitle', { month: t(`apple.months.${month}`), year })}
+        </h2>
+        <button
+          onClick={() => onShift(1)}
+          aria-label={t('apple.nextMonth')}
+          className="flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-white bg-cream text-ink shadow-md transition-transform hover:-translate-y-0.5 hover:scale-105"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+      </div>
+
+      {months && months.length > 1 && onJump && (
+        <div className="mt-3 flex justify-center">
+          <select
+            aria-label={t('apple.jumpToMonth')}
+            value={value}
+            onChange={(e) => onJump(e.target.value)}
+            className="font-hand rounded-full border-[3px] border-white bg-cream px-3 py-1 text-lg text-ink shadow-md outline-none"
+          >
+            {months.map((key) => (
+              <option key={key} value={key}>
+                {label(key)}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -155,29 +238,7 @@ function CalendarMode({
       className="sticker-card grain relative overflow-hidden p-4 sm:p-6"
       style={PAPER_JOURNAL_STYLE}
     >
-      {/* month header */}
-      <div className="mb-4 flex items-center justify-between">
-        <button
-          onClick={() => shift(-1)}
-          aria-label={t('apple.prevMonth')}
-          className="flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-white bg-cream text-ink shadow-md transition-transform hover:-translate-y-0.5 hover:scale-105"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <h2
-          className="font-display text-2xl font-semibold sm:text-3xl"
-          style={{ color: APPLE_RED }}
-        >
-          {t('apple.monthTitle', { month: t(`apple.months.${view.month}`), year: view.year })}
-        </h2>
-        <button
-          onClick={() => shift(1)}
-          aria-label={t('apple.nextMonth')}
-          className="flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-white bg-cream text-ink shadow-md transition-transform hover:-translate-y-0.5 hover:scale-105"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>
-      </div>
+      <MonthNav year={view.year} month={view.month} onShift={shift} />
 
       {/* weekday row */}
       <div className="mb-2 grid grid-cols-7 gap-1.5 sm:gap-2">
@@ -229,7 +290,7 @@ function CalendarMode({
                   {/* tape */}
                   <span className="absolute -top-1.5 left-1/2 h-2.5 w-8 -translate-x-1/2 -rotate-3 rounded-[2px] bg-[#ffdd94]/80 shadow-sm" />
                   <img
-                    src={photo.image}
+                    src={photo.thumbUrl ?? photo.imageUrl}
                     alt={photo.description || t('apple.appleAlt')}
                     className="aspect-square w-full rounded-[2px] object-cover"
                     loading="lazy"
@@ -301,13 +362,13 @@ function GalleryPolaroid({
         />
         <div className="pointer-events-none">
           <img
-            src={photo.image}
+            src={photo.thumbUrl ?? photo.imageUrl}
             alt={photo.description || t('apple.appleAlt')}
             className="aspect-square w-full rounded-[3px] object-cover"
             draggable={false}
             loading="lazy"
           />
-          {photo.video && (
+          {photo.videoUrl && (
             <span className="absolute right-3 top-3 rounded-full border-2 border-white bg-[#E8563F] px-1.5 py-px text-[10px] font-extrabold uppercase text-white shadow">
               {t('apple.liveBadge')}
             </span>
@@ -331,6 +392,31 @@ function GalleryMode({
 }) {
   const { t } = useLanguage();
   const boardRef = useRef<HTMLDivElement>(null);
+  /* `null` means "the newest month with an apple", so a freshly synced photo
+   * turns up on its own instead of hiding behind a stale selection. Showing
+   * one month at a time also keeps the board at ~30 draggable polaroids —
+   * rendering a whole back-filled year at once made phones stutter. */
+  const [picked, setPicked] = useState<string | null>(null);
+
+  const months = useMemo(() => {
+    const keys = new Set(photos.map((p) => p.date.slice(0, 7)));
+    return [...keys].sort().reverse();
+  }, [photos]);
+
+  const active = picked ?? months[0] ?? todayString().slice(0, 7);
+  const [activeYear, activeMonth] = active.split('-').map(Number);
+
+  const shown = useMemo(
+    () => photos.filter((p) => p.date.startsWith(active)),
+    [photos, active],
+  );
+
+  function shift(delta: number) {
+    const m = activeMonth - 1 + delta;
+    const y = activeYear + Math.floor(m / 12);
+    const mm = ((m % 12) + 12) % 12;
+    setPicked(`${y}-${String(mm + 1).padStart(2, '0')}`);
+  }
 
   if (photos.length === 0) {
     return (
@@ -349,11 +435,22 @@ function GalleryMode({
       className="sticker-card grain relative overflow-hidden p-6 sm:p-8"
       style={WOOD_BOARD_STYLE}
     >
+      <MonthNav
+        year={activeYear}
+        month={activeMonth - 1}
+        onShift={shift}
+        months={months}
+        value={active}
+        onJump={setPicked}
+      />
+
       <p className="font-hand mb-6 text-center text-2xl text-ink-soft">
-        {t('apple.shuffleHint')}
+        {shown.length > 0
+          ? t('apple.shuffleHint')
+          : t('apple.emptyMonth')}
       </p>
       <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
-        {photos.map((p) => (
+        {shown.map((p) => (
           <GalleryPolaroid key={p.id} photo={p} onOpen={onOpen} boardRef={boardRef} />
         ))}
       </div>

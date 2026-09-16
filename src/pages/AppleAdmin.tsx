@@ -16,13 +16,16 @@ import {
   setAdminToken,
 } from '@/lib/apple';
 
-/** Shape of one row returned by admin/town listApplePhotos. */
+/** Shape of one row returned by admin/town listApplePhotos.
+ * Images/videos live in R2; the row carries public URLs, not base64. */
 export interface ApplePhotoData {
   id: number;
   date: string; // YYYY-MM-DD
   description: string;
-  image: string; // base64 data URL
-  video: string | null; // base64 data URL
+  imageUrl: string;
+  /** Small copy used by grids; null for hand-uploaded photos. */
+  thumbUrl: string | null;
+  videoUrl: string | null;
 }
 
 const APPLE_RED = '#E8563F';
@@ -112,8 +115,13 @@ function PhotoForm({ editing, onSaved, onCancel }: PhotoFormProps) {
   const fmt = usePrettyDate();
   const [date, setDate] = useState(editing?.date ?? new Date().toISOString().slice(0, 10));
   const [description, setDescription] = useState(editing?.description ?? '');
-  const [image, setImage] = useState<string | null>(editing?.image ?? null);
-  const [video, setVideo] = useState<string | null>(editing?.video ?? null);
+  /* Holds only a *newly picked* data URL. When editing, an untouched photo
+   * keeps its existing R2 object server-side — the form previews it via
+   * editing.imageUrl instead. */
+  const [image, setImage] = useState<string | null>(null);
+  const [video, setVideo] = useState<string | null>(null);
+  const imagePreview = image ?? editing?.imageUrl ?? null;
+  const videoPreview = video ?? editing?.videoUrl ?? null;
   const [busy, setBusy] = useState(false);
   const imageInput = useRef<HTMLInputElement>(null);
   const videoInput = useRef<HTMLInputElement>(null);
@@ -153,16 +161,19 @@ function PhotoForm({ editing, onSaved, onCancel }: PhotoFormProps) {
 
   async function save(e: FormEvent) {
     e.preventDefault();
-    if (!image) {
+    if (!image && !editing) {
       toast.error(t('apple.admin.pickPhotoFirst'));
       return;
     }
     setBusy(true);
     try {
       await upsert.mutateAsync({
+        /* Sending the id pins the update to this row, so editing the date
+         * moves the entry (media included) instead of creating a new one. */
+        ...(editing ? { id: editing.id } : {}),
         date,
         description: description.slice(0, 500),
-        image,
+        ...(image ? { image } : {}),
         ...(video ? { video } : {}),
       });
       toast.success(editing ? t('apple.admin.savedEdit') : t('apple.admin.savedNew'));
@@ -230,11 +241,11 @@ function PhotoForm({ editing, onSaved, onCancel }: PhotoFormProps) {
             className="btn-secondary mt-1 w-full !px-4 !py-2.5 text-sm"
           >
             <Camera className="h-4 w-4" />{' '}
-            {image ? t('apple.admin.swapPhoto') : t('apple.admin.choosePhoto')}
+            {imagePreview ? t('apple.admin.swapPhoto') : t('apple.admin.choosePhoto')}
           </button>
-          {image && (
+          {imagePreview && (
             <img
-              src={image}
+              src={imagePreview}
               alt={t('apple.admin.photoPreviewAlt')}
               className="mt-3 h-28 w-full rounded-2xl border-[3px] border-white object-cover shadow-md"
             />
@@ -264,10 +275,10 @@ function PhotoForm({ editing, onSaved, onCancel }: PhotoFormProps) {
             <Film className="h-4 w-4" />{' '}
             {video ? t('apple.admin.swapVideo') : t('apple.admin.chooseVideo')}
           </button>
-          {video && (
+          {videoPreview && (
             <div className="relative mt-3">
               <video
-                src={video}
+                src={videoPreview}
                 muted
                 loop
                 autoPlay
@@ -484,8 +495,8 @@ export default function AppleAdmin() {
           {photos.map((p) => (
             <li key={p.id} className="sticker-card overflow-hidden">
               <div className="relative">
-                <img src={p.image} alt={p.description || t('apple.appleAlt')} className="h-40 w-full object-cover" />
-                {p.video && (
+                <img src={p.imageUrl} alt={p.description || t('apple.appleAlt')} className="h-40 w-full object-cover" />
+                {p.videoUrl && (
                   <span className="absolute left-2 top-2 rounded-full border-2 border-white bg-[#E8563F] px-2 py-0.5 text-xs font-extrabold text-white shadow">
                     {t('apple.liveBadge')}
                   </span>

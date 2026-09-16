@@ -650,6 +650,7 @@ export const en = {
     gallery: 'Gallery',
     prevMonth: 'Previous month',
     nextMonth: 'Next month',
+    jumpToMonth: 'Jump to a month',
     monthTitle: '{month} {year}',
     weekdays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     months: [
