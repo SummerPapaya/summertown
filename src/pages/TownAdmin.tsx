@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import type { FormEvent } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import { Link } from 'react-router';
 import { motion } from 'framer-motion';
-import { Apple, Copy, KeyRound, Mail, MailOpen, Star, Trash2 } from 'lucide-react';
+import { Apple, Copy, Inbox, KeyRound, Mail, MailOpen, Star, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/providers/trpc';
 import { cn } from '@/lib/utils';
@@ -109,13 +109,25 @@ function TokenGate({ onToken }: { onToken: (token: string) => void }) {
 /* Delete button with inline two-tap confirm                            */
 /* ------------------------------------------------------------------ */
 
-function DeleteButton({ onDelete }: { onDelete: () => void }) {
+function ConfirmButton({
+  onConfirm,
+  label,
+  confirmLabel,
+  tone = 'danger',
+  icon,
+}: {
+  onConfirm: () => void;
+  label: string;
+  confirmLabel: string;
+  tone?: 'danger' | 'approve';
+  icon?: ReactNode;
+}) {
   const [arming, setArming] = useState(false);
 
   function handleClick() {
     if (arming) {
       setArming(false);
-      onDelete();
+      onConfirm();
       return;
     }
     setArming(true);
@@ -126,11 +138,20 @@ function DeleteButton({ onDelete }: { onDelete: () => void }) {
       onClick={handleClick}
       onBlur={() => setArming(false)}
       className={cn(
-        'btn-secondary flex-1 !px-3 !py-1.5 text-sm !text-[#E8563F]',
-        arming && '!border-[#E8563F] !bg-[#E8563F]/10',
+        'btn-secondary flex-1 !px-3 !py-1.5 text-sm',
+        tone === 'danger'
+          ? cn('!text-[#E8563F]', arming && '!border-[#E8563F] !bg-[#E8563F]/10')
+          : cn('!text-[#3E8E8A]', arming && '!border-[#3E8E8A] !bg-[#3E8E8A]/10'),
       )}
     >
-      <Trash2 className="h-3.5 w-3.5" /> {arming ? 'Sure?' : 'Delete'}
+      {arming ? (
+        confirmLabel
+      ) : (
+        <span className="inline-flex items-center gap-1.5">
+          {icon}
+          {label}
+        </span>
+      )}
     </button>
   );
 }
@@ -139,9 +160,10 @@ function DeleteButton({ onDelete }: { onDelete: () => void }) {
 /* Tabs                                                                 */
 /* ------------------------------------------------------------------ */
 
-type Tab = 'wishes' | 'postcards' | 'subscribers';
+type Tab = 'pending' | 'wishes' | 'postcards' | 'subscribers';
 
 const TABS: { id: Tab; label: string }[] = [
+  { id: 'pending', label: 'Pending' },
   { id: 'wishes', label: 'Wishes' },
   { id: 'postcards', label: 'Postcards' },
   { id: 'subscribers', label: 'Subscribers' },
@@ -193,7 +215,12 @@ function WishesTab() {
             </div>
           </div>
           <div className="mt-3 flex gap-2 border-t-2 border-dashed border-[#3e8e8a33] pt-3">
-            <DeleteButton onDelete={() => void remove(w)} />
+            <ConfirmButton
+              onConfirm={() => void remove(w)}
+              label="Delete"
+              confirmLabel="Sure?"
+              icon={<Trash2 className="h-3.5 w-3.5" />}
+            />
           </div>
         </li>
       ))}
@@ -245,11 +272,186 @@ function PostcardsTab() {
           <p className="font-hand mt-1 text-lg text-ink-soft">— {p.signature}</p>
           <p className="mt-1 text-xs font-bold text-ink-soft">{fmtDateTime(p.createdAt)}</p>
           <div className="mt-3 flex gap-2 border-t-2 border-dashed border-[#3e8e8a33] pt-3">
-            <DeleteButton onDelete={() => void remove(p)} />
+            <ConfirmButton
+              onConfirm={() => void remove(p)}
+              label="Delete"
+              confirmLabel="Sure?"
+              icon={<Trash2 className="h-3.5 w-3.5" />}
+            />
           </div>
         </li>
       ))}
     </ul>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Pending review tab (held-for-moderation queue)                       */
+/* ------------------------------------------------------------------ */
+
+function PendingTab() {
+  const listQuery = trpc.admin.listPending.useQuery(undefined, { retry: false });
+  const approveWish = trpc.admin.approveWish.useMutation();
+  const rejectWish = trpc.admin.rejectWish.useMutation();
+  const approvePostcard = trpc.admin.approvePostcard.useMutation();
+  const rejectPostcard = trpc.admin.rejectPostcard.useMutation();
+  const bulkApprove = trpc.admin.bulkApprove.useMutation();
+
+  const pendingWishes = (listQuery.data?.wishes ?? []) as WishData[];
+  const pendingPostcards = (listQuery.data?.postcards ?? []) as PostcardData[];
+
+  async function act(
+    mutate: { mutateAsync: (input: { id: number }) => Promise<unknown> },
+    id: number,
+    okMsg: string,
+  ) {
+    try {
+      await mutate.mutateAsync({ id });
+      toast.success(okMsg);
+      await listQuery.refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Action failed');
+    }
+  }
+
+  async function approveAll(kind: 'wish' | 'postcard', ids: number[]) {
+    if (ids.length === 0) return;
+    try {
+      await bulkApprove.mutateAsync({ kind, ids });
+      toast.success(
+        `Approved ${ids.length} ${kind === 'wish' ? 'wish' : 'postcard'}${ids.length === 1 ? '' : 's'}`,
+      );
+      await listQuery.refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Bulk approve failed');
+    }
+  }
+
+  if (listQuery.isLoading) {
+    return (
+      <p className="font-hand py-16 text-center text-2xl text-ink-soft">checking the holding pen…</p>
+    );
+  }
+
+  if (pendingWishes.length === 0 && pendingPostcards.length === 0) {
+    return (
+      <div className="sticker-card p-10 text-center">
+        <div className="text-5xl">🕊️</div>
+        <p className="font-hand mt-2 text-2xl text-ink-soft">
+          the holding pen is empty — nothing waiting for review
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-10">
+      {/* Flagged wishes */}
+      <section>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-display text-xl font-semibold" style={{ color: POST_OFFICE_TEAL }}>
+            Flagged wishes
+            <span className="ml-2 rounded-full bg-[#3e8e8a1a] px-2.5 py-0.5 text-sm font-extrabold text-[#3E8E8A]">
+              {pendingWishes.length}
+            </span>
+          </h2>
+          {pendingWishes.length > 1 && (
+            <button
+              onClick={() => void approveAll('wish', pendingWishes.map((w) => w.id))}
+              className="btn-primary !px-4 !py-1.5 text-sm"
+            >
+              Approve all ({pendingWishes.length})
+            </button>
+          )}
+        </div>
+        {pendingWishes.length === 0 ? (
+          <p className="font-hand text-lg text-ink-soft">no flagged wishes</p>
+        ) : (
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {pendingWishes.map((w) => (
+              <li key={w.id} className="sticker-card p-4">
+                <div className="flex items-start gap-2.5">
+                  <span
+                    className="mt-1.5 h-3.5 w-3.5 shrink-0 rounded-full border-2 border-white shadow"
+                    style={{ background: w.accent }}
+                  />
+                  <div className="min-w-0">
+                    <p className="font-hand text-xl leading-tight text-ink">{w.text}</p>
+                    <p className="mt-1 text-xs font-bold text-ink-soft">{fmtDateTime(w.createdAt)}</p>
+                  </div>
+                </div>
+                <div className="mt-3 flex gap-2 border-t-2 border-dashed border-[#3e8e8a33] pt-3">
+                  <button
+                    onClick={() => void act(approveWish, w.id, 'Wish approved')}
+                    className="btn-primary flex-1 !px-3 !py-1.5 text-sm"
+                  >
+                    Approve
+                  </button>
+                  <ConfirmButton
+                    onConfirm={() => void act(rejectWish, w.id, 'Wish rejected')}
+                    label="Reject"
+                    confirmLabel="Sure?"
+                    tone="danger"
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Flagged postcards */}
+      <section>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-display text-xl font-semibold" style={{ color: POST_OFFICE_TEAL }}>
+            Flagged postcards
+            <span className="ml-2 rounded-full bg-[#3e8e8a1a] px-2.5 py-0.5 text-sm font-extrabold text-[#3E8E8A]">
+              {pendingPostcards.length}
+            </span>
+          </h2>
+          {pendingPostcards.length > 1 && (
+            <button
+              onClick={() => void approveAll('postcard', pendingPostcards.map((p) => p.id))}
+              className="btn-primary !px-4 !py-1.5 text-sm"
+            >
+              Approve all ({pendingPostcards.length})
+            </button>
+          )}
+        </div>
+        {pendingPostcards.length === 0 ? (
+          <p className="font-hand text-lg text-ink-soft">no flagged postcards</p>
+        ) : (
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {pendingPostcards.map((p) => (
+              <li key={p.id} className="sticker-card p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-hand text-xl leading-tight text-ink">{p.message}</p>
+                  <span className="shrink-0 text-2xl" title="doodle">
+                    {p.doodle}
+                  </span>
+                </div>
+                <p className="font-hand mt-1 text-lg text-ink-soft">— {p.signature}</p>
+                <p className="mt-1 text-xs font-bold text-ink-soft">{fmtDateTime(p.createdAt)}</p>
+                <div className="mt-3 flex gap-2 border-t-2 border-dashed border-[#3e8e8a33] pt-3">
+                  <button
+                    onClick={() => void act(approvePostcard, p.id, 'Postcard approved')}
+                    className="btn-primary flex-1 !px-3 !py-1.5 text-sm"
+                  >
+                    Approve
+                  </button>
+                  <ConfirmButton
+                    onConfirm={() => void act(rejectPostcard, p.id, 'Postcard rejected')}
+                    label="Reject"
+                    confirmLabel="Sure?"
+                    tone="danger"
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
   );
 }
 
@@ -344,13 +546,21 @@ function SubscribersTab() {
 
 export default function TownAdmin() {
   const [token, setToken] = useState(getAdminToken);
-  const [tab, setTab] = useState<Tab>('wishes');
+  const [tab, setTab] = useState<Tab>('pending');
 
   // Light admin call doubles as token verification.
   const probeQuery = trpc.admin.listWishes.useQuery(undefined, {
     enabled: !!token,
     retry: false,
   });
+
+  // Live count of items held for moderation — powers the Pending tab badge.
+  const pendingQuery = trpc.admin.listPending.useQuery(undefined, {
+    enabled: !!token,
+    retry: false,
+  });
+  const pendingCount =
+    (pendingQuery.data?.wishes.length ?? 0) + (pendingQuery.data?.postcards.length ?? 0);
 
   // Wrong token → bounce back to the gate with a gentle scolding.
   useEffect(() => {
@@ -399,7 +609,7 @@ export default function TownAdmin() {
             Town Hall Office 📮
           </h1>
           <p className="font-hand mt-1 text-2xl text-ink-soft">
-            wishes, postcards & the mailing list — all in one drawer
+            reviews, wishes, postcards & the mailing list — all in one drawer
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -430,14 +640,21 @@ export default function TownAdmin() {
             )}
             style={tab === t.id ? { background: POST_OFFICE_TEAL } : undefined}
           >
+            {t.id === 'pending' && <Inbox className="mr-1.5 inline-block h-4 w-4 -translate-y-0.5" />}
             {t.id === 'wishes' && <Star className="mr-1.5 inline-block h-4 w-4 -translate-y-0.5" />}
             {t.id === 'postcards' && <MailOpen className="mr-1.5 inline-block h-4 w-4 -translate-y-0.5" />}
             {t.id === 'subscribers' && <Mail className="mr-1.5 inline-block h-4 w-4 -translate-y-0.5" />}
             {t.label}
+            {t.id === 'pending' && pendingCount > 0 && (
+              <span className="ml-1.5 rounded-full bg-white/25 px-1.5 py-0.5 text-xs">
+                {pendingCount}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
+      {tab === 'pending' && <PendingTab />}
       {tab === 'wishes' && <WishesTab />}
       {tab === 'postcards' && <PostcardsTab />}
       {tab === 'subscribers' && <SubscribersTab />}
