@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { desc, eq, and, count } from "drizzle-orm";
+import { desc, eq, count } from "drizzle-orm";
 import { createRouter, publicQuery, writeProcedure } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applePhotos, footprints, newsletterSubs, postcards, wishes } from "@db/schema";

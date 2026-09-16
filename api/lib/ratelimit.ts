@@ -37,6 +37,7 @@ async function bumpCounter(
   limit: number,
   windowMs: number,
 ): Promise<RateLimitDecision> {
+  void env; // reserved for future D1/KV-backed limits
   // Cache keys need to be valid URLs — wrap the bucket name with a stable
   // prefix; Cloudflare limits to <512 chars & ascii printable.
   const url = `https://ratelimit.local/${encodeURIComponent(bucket)}/${Math.floor(
@@ -72,7 +73,3 @@ async function bumpCounter(
     resetAtMs,
   };
 }
-
-// `env` is intentionally unused today but kept in the signature so future
-// D1-backed or KV-backed limits can plug in without touching call sites.
-void (null as unknown as Env);
