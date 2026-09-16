@@ -354,12 +354,14 @@ export default function AppleAdmin() {
 
   const photos = (listQuery.data ?? []) as ApplePhotoData[];
 
-  // Wrong token → bounce back to the gate with a gentle scolding.
+  // Wrong token → bounce back to the gate. Show the server's message verbatim
+  // so a missing ADMIN_TOKEN secret is distinguishable from a typo.
   useEffect(() => {
     if (listQuery.error && errorCode(listQuery.error) === 'UNAUTHORIZED') {
+      const serverSays = listQuery.error.message;
       clearAdminToken();
       setToken('');
-      toast.error(t('apple.admin.badToken'));
+      toast.error(serverSays || t('apple.admin.badToken'));
     }
   }, [listQuery.error, t]);
 
@@ -367,6 +369,17 @@ export default function AppleAdmin() {
     return (
       <div className="px-4 py-10">
         <TokenGate onToken={setToken} />
+      </div>
+    );
+  }
+
+  // Verify before rendering — otherwise the basket flashes then bounces back.
+  if (listQuery.isLoading) {
+    return (
+      <div className="px-4 py-10">
+        <p className="font-hand py-16 text-center text-2xl text-ink-soft">
+          checking the basket key…
+        </p>
       </div>
     );
   }

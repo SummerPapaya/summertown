@@ -12,11 +12,28 @@ export const createRouter = t.router;
 export const publicQuery = t.procedure;
 
 /** Admin gate — requires header `x-admin-token` to match the secret
- * bound as `env.ADMIN_TOKEN`. Throws UNAUTHORIZED otherwise. */
+ * bound as `env.ADMIN_TOKEN`. Throws UNAUTHORIZED otherwise.
+ *
+ * Both sides are trimmed: secrets uploaded via `wrangler secret put` (or
+ * pasted into the dashboard) can carry a trailing newline, which would make
+ * an otherwise-correct token compare unequal forever — with no way for ops
+ * to tell why. */
 export const adminProcedure = publicQuery.use(({ ctx, next }) => {
-  const expected = ctx.env.ADMIN_TOKEN;
-  const provided = ctx.req.headers.get("x-admin-token");
-  if (!expected || provided !== expected) {
+  const raw = ctx.env.ADMIN_TOKEN;
+  const expected = typeof raw === "string" ? raw.trim() : "";
+  const provided = ctx.req.headers.get("x-admin-token")?.trim() ?? "";
+
+  // Distinct message (still UNAUTHORIZED) so a lockout is diagnosable:
+  // "the secret was never bound" and "you typed the wrong value" are very
+  // different fixes, and a single generic message hides which one it is.
+  if (!expected) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message:
+        "Admin token is not configured on the server — set the ADMIN_TOKEN secret and redeploy.",
+    });
+  }
+  if (!provided || provided !== expected) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid admin token" });
   }
   return next();

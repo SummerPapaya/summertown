@@ -631,11 +631,15 @@ export default function TownAdmin() {
     (pendingQuery.data?.wishes.length ?? 0) + (pendingQuery.data?.postcards.length ?? 0);
 
   // Wrong token → bounce back to the gate with a gentle scolding.
+  // Show the server's message verbatim: it separates "the ADMIN_TOKEN secret
+  // was never set" from "you typed the wrong value". Those have completely
+  // different fixes, and a generic message hides which one it is.
   useEffect(() => {
     if (probeQuery.error && errorCode(probeQuery.error) === 'UNAUTHORIZED') {
+      const serverSays = probeQuery.error.message;
       clearAdminToken();
       setToken('');
-      toast.error('That token doesn’t match the office key — try again');
+      toast.error(serverSays || 'That token doesn’t match the office key — try again');
     }
   }, [probeQuery.error]);
 
@@ -643,6 +647,18 @@ export default function TownAdmin() {
     return (
       <div className="px-4 py-10">
         <TokenGate onToken={setToken} />
+      </div>
+    );
+  }
+
+  // Verify before rendering the dashboard — otherwise the office flashes into
+  // view for a split second and then bounces back to the gate.
+  if (probeQuery.isLoading) {
+    return (
+      <div className="px-4 py-10">
+        <p className="font-hand py-16 text-center text-2xl text-ink-soft">
+          checking the office key…
+        </p>
       </div>
     );
   }
