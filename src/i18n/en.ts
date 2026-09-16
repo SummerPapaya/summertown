@@ -150,11 +150,11 @@ export const en = {
       chip: 'Culture',
       whisper: 'shhh, the books are napping',
       tagline: 'Stories stacked to the weather vane.',
-      lore: 'A tower built like a pile of giant books; the top floor only lends books about the moon. Overdue fees are paid in seashells, one per week, pretty ones preferred.',
+      lore: 'A tower built like a pile of giant books; the top floor only lends books about the moon and starlight. Overdue fees are paid in seashells, one per week, pretty ones preferred.',
       facts: [
         'Open till the stars clock in',
         'Late fee: 1 shell',
-        'Moon section: top floor, ladder provided',
+        'Moon and Starlight section: top floor, ladder provided',
       ],
     },
     designLab: {
@@ -247,6 +247,7 @@ export const en = {
     appleAlbum: 'An Apple A Day — open the album →',
     townCalendar: 'Town calendar — pinned notices →',
     postcardWall: 'Postcard wall — leave a note →',
+    starlightLibrary: 'A Study of One\'s Own · Starlight Library →',
   },
   home: {
     fieldNotes: {

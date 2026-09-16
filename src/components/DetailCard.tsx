@@ -315,9 +315,28 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
                 </Link>
               </motion.div>
             )}
+            {/* Starlight Library link (Tides' End Library) */}
+            {lm.id === 'library' && (
+              <motion.div variants={item} className="mt-5">
+                <a
+                  href="https://shufang-galaxy.summercommences.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group flex items-center gap-2.5 rounded-[20px] border-[3px] border-white bg-white/60 px-4 py-3 shadow-sticker transition-all duration-300 ease-squash hover:-translate-y-0.5 hover:bg-white/80"
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-white bg-coral/30">
+                    <Star className="h-4 w-4 text-coral" />
+                  </span>
+                  <span className="font-display text-sm font-semibold text-ink transition-transform duration-300 ease-squash group-hover:scale-[1.02]">
+                    {t('detail.starlightLibrary')}
+                  </span>
+                </a>
+              </motion.div>
+            )}
+
             {/* An Apple A Day album link (Apple Cottage) */}
             {lm.id === 'apple-cottage' && (
-              <motion.div variants={item} className="mt-5">
+              <motion.div variants={item} className="group/album mt-5">
                 <Link
                   to="/apple-album"
                   className="group flex items-center gap-2.5 rounded-[20px] border-[3px] border-white bg-white/60 px-4 py-3 shadow-sticker transition-all duration-300 ease-squash hover:-translate-y-0.5 hover:bg-white/80"
@@ -329,6 +348,15 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
                     {t('detail.appleAlbum')}
                   </span>
                 </Link>
+                {/* hover preview — expands on desktop hover, stays collapsed on touch */}
+                <div className="max-h-0 overflow-hidden opacity-0 transition-all duration-300 ease-squash group-hover/album:max-h-[340px] group-hover/album:pt-3 group-hover/album:opacity-100">
+                  <img
+                    src="/preview-apple-album.png"
+                    alt={t('detail.appleAlbum')}
+                    className="w-full rounded-[14px] border-[3px] border-white bg-cream shadow-sticker"
+                    loading="eager"
+                  />
+                </div>
               </motion.div>
             )}
 

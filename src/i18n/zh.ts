@@ -130,8 +130,8 @@ export const zh: DeepL10n<Messages> = {
       chip: '文化',
       whisper: '嘘——书在午睡',
       tagline: '故事一路堆到风向标。',
-      lore: '整座塔由一摞巨书搭起来；顶楼只借阅关于月亮的书。逾期费拿贝壳抵扣，一周一枚，长得好看的优先。',
-      facts: ['一直开到星星来打卡', '逾期费：一枚贝壳', '月亮专区在顶楼，梯子已备好'],
+      lore: '整座塔由一摞巨书搭起来；顶楼只借阅关于月亮和星空的书。逾期费拿贝壳抵扣，一周一枚，长得好看的优先。',
+      facts: ['一直开到星星来打卡', '逾期费：一枚贝壳', '月亮和星空专区在顶楼，梯子已备好'],
     },
     designLab: {
       name: '纸船设计所',
@@ -199,6 +199,7 @@ export const zh: DeepL10n<Messages> = {
     appleAlbum: '一天一苹果 · 打开相册 →',
     townCalendar: '小镇日历 · 看看布告 →',
     postcardWall: '明信片墙 · 留一句话 →',
+    starlightLibrary: '一个人的书房 · 星空图书馆 →',
   },
   home: {
     fieldNotes: {
