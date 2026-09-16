@@ -23,7 +23,7 @@ binding = "STATIC"
 [[d1_databases]]
 binding = "DB"
 database_name = "summertown-db"
-# database_id = "29411610-6639-4384-ad7c-267c42a9f4ce"
+database_id = "29411610-6639-4384-ad7c-267c42a9f4ce"
 
 # R2 for high-resolution apple-photo images (D1 row cap ~1 MB)
 # Create with:  wrangler r2 bucket create summertown-photos
