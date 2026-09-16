@@ -99,7 +99,7 @@ npm run lint     # eslint
 
 React 19 · TypeScript · Vite · Tailwind CSS · Framer Motion · GSAP · Lenis · Howler · shadcn/ui
 
-Deployed to GitHub Pages from `main` via `.github/workflows/deploy.yml` (custom domain: `summertown.summercommences.com`).
+Deployed to Cloudflare Workers from `main` via Git integration (custom domain: `summertown.summercommences.com`).
 
 ### Made with
 

@@ -99,7 +99,7 @@ npm run lint     # eslint
 
 React 19 · TypeScript · Vite · Tailwind CSS · Framer Motion · GSAP · Lenis · Howler · shadcn/ui
 
-通过 `.github/workflows/deploy.yml` 从 `main` 部署到 GitHub Pages（自定义域名：`summertown.summercommences.com`）。
+通过 Git 集成从 `main` 部署到 Cloudflare Workers（自定义域名：`summertown.summercommences.com`）。
 
 ### 制作工具
 
