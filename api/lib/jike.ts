@@ -15,7 +15,8 @@
  * cannot rewrite its own secrets).
  */
 
-const BASE = "https://api.ruguoapp.com/1.0";
+const ORIGIN = "https://api.ruguoapp.com";
+const BASE = `${ORIGIN}/1.0`;
 
 export interface JikeTokens {
   accessToken: string;
@@ -40,26 +41,31 @@ export function readTokensFromEnv(env: unknown): Partial<JikeTokens> & {
   };
 }
 
+/** A desktop browser UA. The token we use is issued to the web client
+ * (`web.okjike.com`), so requests should look like that client and nothing
+ * else — 即刻's gateway rejects the mobile headers (`x-jike-app-id`,
+ * `app-buildno`, `applicationid`, `okhttp/…`) when they are bolted onto a
+ * web token. */
+const WEB_UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+
+/**
+ * Exactly the three headers their own web client sets (verified against
+ * `web.okjike.com/assets/index-*.js`: an axios request interceptor that sets
+ * `x-jike-access-token`, `x-jike-device-id` and `platform`), plus the plain
+ * JSON/browser headers axios adds for free. Anything extra is a liability
+ * when the token was issued to the web client.
+ */
 function buildHeaders(env: unknown, tokens: JikeTokens): Record<string, string> {
   const e = secrets(env);
   const headers: Record<string, string> = {
     "content-type": "application/json",
     accept: "application/json",
-    "x-jike-access-token": tokens.accessToken,
-    "x-jike-refresh-token": tokens.refreshToken,
-    /* Gateway fields the mobile app sends. Overridable via secrets in case
-     * 即刻 starts rejecting the defaults. */
-    "x-jike-app-id": e.JIKE_APP_ID ?? "XeITUMa6kGKF",
-    "app-buildno": e.JIKE_BUILD_NO ?? "2241",
-    applicationid: e.JIKE_BUNDLE_ID ?? "com.ruguoapp.jike",
-    /* Their own web client sends this; a token taken from web.okjike.com is
-     * issued to it. Override with JIKE_PLATFORM if you use a mobile token. */
     platform: e.JIKE_PLATFORM ?? "web",
-    "os-version": "23",
-    model: "iPhone",
-    resolution: "1170x2532",
-    "user-agent": e.JIKE_USER_AGENT ?? "okhttp/4.9.0",
+    "user-agent": e.JIKE_USER_AGENT ?? WEB_UA,
   };
+  if (tokens.accessToken) headers["x-jike-access-token"] = tokens.accessToken;
+  if (tokens.refreshToken) headers["x-jike-refresh-token"] = tokens.refreshToken;
   if (e.JIKE_DEVICE_ID) headers["x-jike-device-id"] = e.JIKE_DEVICE_ID;
   return headers;
 }
@@ -76,7 +82,12 @@ async function call<T>(
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    throw new Error(`jike ${path} → HTTP ${res.status}`);
+    /* The body almost always says why (E101 = token expired, etc.) and it is
+     * the only way to debug a 401 from inside a Worker. */
+    const detail = (await res.text().catch(() => "")).slice(0, 200);
+    throw new Error(
+      `jike ${path} → HTTP ${res.status}${detail ? ` — ${detail}` : ""}`,
+    );
   }
   return (await res.json()) as T;
 }
@@ -330,28 +341,41 @@ export async function refreshTokens(
   tokens: JikeTokens,
 ): Promise<JikeTokens | null> {
   if (!tokens.refreshToken) return null;
-  const paths = ["/auth/refresh", "/appAuthTokens/refresh"];
+  /* Their web client calls the RPC-style `/app_auth_tokens.refresh` (no
+   * `/1.0` prefix) and reads `x-jike-access-token` straight off the body.
+   * Older spellings are tried afterwards, in case the gateway still serves
+   * them. */
+  const paths = [
+    "/app_auth_tokens.refresh",
+    "/1.0/app_auth_tokens.refresh",
+    "/1.0/appAuthTokens/refresh",
+  ];
   for (const path of paths) {
     try {
-      const res: Response = await fetch(`${BASE}${path}`, {
+      const res: Response = await fetch(`${ORIGIN}${path}`, {
         method: "POST",
         headers: buildHeaders(env, tokens),
-        body: JSON.stringify({ refreshToken: tokens.refreshToken }),
+        body: JSON.stringify({}),
       });
       if (!res.ok) continue;
-      const body = (await res.json()) as {
-        data?: { accessToken?: string; refreshToken?: string };
-        accessToken?: string;
-        refreshToken?: string;
+      const body = (await res.json()) as Record<string, unknown>;
+      const nested = (body.data ?? {}) as Record<string, unknown>;
+      const pick = (...keys: string[]) => {
+        for (const key of keys) {
+          for (const src of [body, nested]) {
+            const value = src?.[key];
+            if (typeof value === "string" && value) return value;
+          }
+        }
+        return null;
       };
       const next: JikeTokens = {
         accessToken:
-          body.data?.accessToken ??
-          body.accessToken ??
+          pick("x-jike-access-token", "accessToken") ??
           res.headers.get("x-jike-access-token") ??
           tokens.accessToken,
         refreshToken:
-          body.data?.refreshToken ?? body.refreshToken ?? tokens.refreshToken,
+          pick("x-jike-refresh-token", "refreshToken") ?? tokens.refreshToken,
       };
       if (next.accessToken !== tokens.accessToken) return next;
     } catch {

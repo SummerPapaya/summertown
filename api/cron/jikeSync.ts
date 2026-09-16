@@ -344,6 +344,11 @@ export async function syncJikeApples(
   /* Only a back-fill walks far enough to need a cursor; the daily sync always
    * starts from the newest post. */
   const useCursor = Boolean(until);
+  /* The public profile page carries the newest ~10 posts, which is all a daily
+   * run needs — so a daily run stays token-free and keeps working even if the
+   * access token has expired. The authenticated API is only used when we
+   * actually need to walk back through history (or when probing it). */
+  const useApi = Boolean(tokens.accessToken) && Boolean(until || opts.probe);
 
   const e = env as unknown as {
     PHOTOS: { put: (k: string, v: ArrayBuffer, o?: unknown) => Promise<unknown> };
@@ -356,7 +361,7 @@ export async function syncJikeApples(
 
   let calls = 0;
   const diag: SyncDiag = {
-    mode: tokens.accessToken ? "api" : "profile",
+    mode: useApi ? "api" : "profile",
     hasAccessToken: Boolean(tokens.accessToken),
     hasRefreshToken: Boolean(tokens.refreshToken),
     hasDeviceId: Boolean(fromEnv.deviceId),
@@ -478,7 +483,7 @@ export async function syncJikeApples(
       let stopped = false;
       let finished = false;
 
-      if (!tokens.accessToken) {
+      if (!useApi) {
         const posts = await listPostsFromProfile(username);
         calls++;
         result.fetched += posts.length;
