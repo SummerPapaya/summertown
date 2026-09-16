@@ -6,9 +6,14 @@ compatibility_flags = ["nodejs_compat"]
 # Production hostname. The domain must already be on Cloudflare; wrangler
 # creates the DNS record + certificate on first deploy.
 # NOTE: top-level keys must stay above the first [table] in TOML.
-routes = [
-  { pattern = "summertown.summercommences.com", custom_domain = true }
-]
+# TEMPORARILY DISABLED: the custom domain already has externally managed DNS
+# records, so `custom_domain = true` fails with code 100117. Deploy to the
+# default *.workers.dev first, then attach the custom domain via the dashboard
+# (Workers & Pages → your Worker → Settings → Custom Domains) which routes
+# without touching existing DNS records.
+# routes = [
+#   { pattern = "summertown.summercommences.com", custom_domain = true }
+# ]
 
 # Static assets (Vite build → dist/public/) served from the same Worker.
 # vite.config.ts sets build.outDir = "dist/public", so the trailing segment
