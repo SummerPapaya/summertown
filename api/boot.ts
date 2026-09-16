@@ -42,16 +42,21 @@ app.get("/photos/*", async (c) => {
 
 app.all("/api/*", (c) => c.json({ error: "Not Found" }, 404));
 
-/* Static assets — produced by `vite build` into `dist/`. Bindings.STATIC
- * is the Workers Static Assets binding declared in wrangler.toml `[assets]`. */
+/* Static assets — produced by `vite build` into `dist/public/`. Requests that
+ * match a real file (`/`, `/assets/*`, `/logo.svg`, …) are served by the
+ * assets layer *before* this Worker runs, so this handler only sees paths with
+ * no matching file: `/api/*` (handled above) and client-side routes such as
+ * `/town-admin` or `/apple-admin`.
+ *
+ * `env.STATIC` is a Workers Static Assets binding — a Fetcher, so it exposes
+ * `fetch()`, not `get()`. Delegating with fetch() returns 404 for an unmatched
+ * path; we then serve `/index.html` so the SPA router can resolve the deep
+ * link. (Without this, deep links 500 instead of rendering.) */
 app.get("*", async (c) => {
-  const { env } = c;
-  const url = new URL(c.req.url);
-  const asset = await env.STATIC.get(url.pathname);
-  if (asset) return asset;
-  // SPA fallback for client-side routes
-  const fallback = await env.STATIC.get("/index.html");
-  return fallback ?? new Response("Not Found", { status: 404 });
+  const res = await c.env.STATIC.fetch(c.req.raw);
+  if (res.status !== 404) return res;
+  const indexUrl = new URL("/index.html", c.req.url).toString();
+  return c.env.STATIC.fetch(new Request(indexUrl));
 });
 
 export default app;

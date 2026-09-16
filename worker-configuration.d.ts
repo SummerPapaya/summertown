@@ -7,8 +7,14 @@ declare global {
     DB: D1Database;
     /** R2 binding — large apple-photo image / video blobs (>1 MB). */
     PHOTOS: R2Bucket;
-    /** Workers Static Assets — Vite build output. */
-    STATIC: { get: (path: string) => Promise<Response | null> };
+    /** Workers Static Assets — Vite build output. A Workers assets binding is
+     * a Fetcher: call `env.STATIC.fetch(request)`. There is NO `.get()` method
+     * (assuming one — and declaring it here — previously shipped a 500 on
+     * every deep link). Typed structurally to avoid depending on the global
+     * `Fetcher` name. */
+    STATIC: {
+      fetch: (input: Request | URL | string) => Promise<Response>;
+    };
     /** App-level public identifier. */
     APP_ID: string;
     /** Admin token required by `x-admin-token` header on /api/trpc/admin.* */
