@@ -4,6 +4,7 @@ import { createRouter, publicQuery, writeProcedure } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applePhotos, footprints, newsletterSubs, postcards, wishes } from "@db/schema";
 import { isAdOrSuspicious } from "./lib/moderation";
+import { guardAgainstSpam } from "./middleware";
 
 const hexColor = z
   .string()
@@ -33,7 +34,12 @@ export const townRouter = createRouter({
     const where = eq(wishes.status, PUBLIC_STATUS);
     const [items, countRows] = await Promise.all([
       db
-        .select()
+        .select({
+          id: wishes.id,
+          text: wishes.text,
+          accent: wishes.accent,
+          createdAt: wishes.createdAt,
+        })
         .from(wishes)
         .where(where)
         .orderBy(desc(wishes.createdAt), desc(wishes.id))
@@ -56,6 +62,8 @@ export const townRouter = createRouter({
     )
     .mutation(async ({ input, ctx }) => {
       const db = getDb(ctx.env);
+      // Hard block: script injection / XSS → 400, never stored.
+      guardAgainstSpam({ text: input.text });
       const verdict = isAdOrSuspicious(input.text);
 
       /* Idempotency: same clientId returning twice is a no-op. The unique
@@ -64,7 +72,7 @@ export const townRouter = createRouter({
         const existing = await db.query.wishes.findFirst({
           where: eq(wishes.clientId, input.clientId),
         });
-        if (existing) return existing;
+        if (existing) return { id: existing.id, held: existing.status === "pending" };
       }
 
       let row;
@@ -85,7 +93,7 @@ export const townRouter = createRouter({
           const fallback = await db.query.wishes.findFirst({
             where: eq(wishes.clientId, input.clientId),
           });
-          if (fallback) return fallback;
+          if (fallback) return { id: fallback.id, held: fallback.status === "pending" };
         }
         throw err;
       }
@@ -93,8 +101,9 @@ export const townRouter = createRouter({
       /* Flagged rows were written with status='pending'; the public list only
        * shows approved ones, so they simply never appear on the wall. We
        * return normally (not an error) so the client doesn't stash the entry
-       * in its outbox and retry — that would duplicate it. */
-      return { ...row, held: verdict.spam };
+       * in its outbox and retry — that would duplicate it. Only echo a safe
+       * subset (never `ip` / `client_id`). */
+      return { id: row.id, held: verdict.spam };
     }),
 
   listPostcards: publicQuery.input(paginationInput).query(async ({ input, ctx }) => {
@@ -104,7 +113,13 @@ export const townRouter = createRouter({
     const where = eq(postcards.status, PUBLIC_STATUS);
     const [items, countRows] = await Promise.all([
       db
-        .select()
+        .select({
+          id: postcards.id,
+          message: postcards.message,
+          signature: postcards.signature,
+          doodle: postcards.doodle,
+          createdAt: postcards.createdAt,
+        })
         .from(postcards)
         .where(where)
         .orderBy(desc(postcards.createdAt), desc(postcards.id))
@@ -128,6 +143,8 @@ export const townRouter = createRouter({
     )
     .mutation(async ({ input, ctx }) => {
       const db = getDb(ctx.env);
+      // Hard block: script injection / XSS → 400, never stored.
+      guardAgainstSpam({ message: input.message, signature: input.signature });
       const text = `${input.message}\n— ${input.signature}\n${input.doodle}`;
       const verdict = isAdOrSuspicious(text);
 
@@ -156,7 +173,7 @@ export const townRouter = createRouter({
           const fallback = await db.query.postcards.findFirst({
             where: eq(postcards.clientId, input.clientId),
           });
-          if (fallback) return fallback;
+          if (fallback) return { id: fallback.id, held: fallback.status === "pending" };
         }
         throw err;
       }
@@ -164,8 +181,9 @@ export const townRouter = createRouter({
       /* Flagged rows were written with status='pending'; the public list only
        * shows approved ones, so they simply never appear on the wall. We
        * return normally (not an error) so the client doesn't stash the entry
-       * in its outbox and retry — that would duplicate it. */
-      return { ...row, held: verdict.spam };
+       * in its outbox and retry — that would duplicate it. Only echo a safe
+       * subset (never `ip` / `client_id`). */
+      return { id: row.id, held: verdict.spam };
     }),
 
   subscribe: publicQuery

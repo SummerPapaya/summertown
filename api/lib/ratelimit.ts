@@ -21,13 +21,11 @@ export async function rateLimit(
   bucket: string,
   limit: number,
   windowMs: number,
+  message = "Slow down, friend — try again in a moment.",
 ): Promise<void> {
   const decision = await bumpCounter(env, bucket, limit, windowMs);
   if (!decision.allowed) {
-    throw new TRPCError({
-      code: "TOO_MANY_REQUESTS",
-      message: "Slow down, friend — try again in a moment.",
-    });
+    throw new TRPCError({ code: "TOO_MANY_REQUESTS", message });
   }
 }
 

@@ -26,10 +26,24 @@ const WRITE_RATE_LIMIT = Number.parseInt(
   process.env.WRITE_RATE_LIMIT ?? "8",
   10,
 );
+/** Per-day cap for write endpoints (`addWish` + `addPostcard` combined),
+ * keyed by client IP. Throttles "refresh-spam" that slips past the
+ * per-minute gate. `DAILY_POST_LIMIT` env var tunes it without redeploy. */
+const DAILY_POST_LIMIT = Number.parseInt(
+  process.env.DAILY_POST_LIMIT ?? "50",
+  10,
+);
 /** Per-minute cap for write endpoints (`addWish`, `addPostcard`).
  * `WRITE_RATE_LIMIT` env var lets ops tune without redeploying. */
 export const writeProcedure = publicQuery.use(async ({ ctx, next }) => {
   await rateLimit(ctx.env, `write:${ctx.clientIp}`, WRITE_RATE_LIMIT, 60_000);
+  await rateLimit(
+    ctx.env,
+    `day:${ctx.clientIp}`,
+    DAILY_POST_LIMIT,
+    86_400_000,
+    "你今天发布的条数已达上限，明天再来吧。 / You've reached today's posting limit — come back tomorrow.",
+  );
   return next();
 });
 

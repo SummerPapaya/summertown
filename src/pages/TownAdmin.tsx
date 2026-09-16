@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { Link } from 'react-router';
 import { motion } from 'framer-motion';
-import { Apple, Copy, Inbox, KeyRound, Mail, MailOpen, Star, Trash2 } from 'lucide-react';
+import { Apple, Copy, Inbox, KeyRound, Mail, MailOpen, Search, ArrowUpDown, Star, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/providers/trpc';
 import { cn } from '@/lib/utils';
@@ -296,9 +296,32 @@ function PendingTab() {
   const approvePostcard = trpc.admin.approvePostcard.useMutation();
   const rejectPostcard = trpc.admin.rejectPostcard.useMutation();
   const bulkApprove = trpc.admin.bulkApprove.useMutation();
+  const clearPending = trpc.admin.clearPending.useMutation();
 
-  const pendingWishes = (listQuery.data?.wishes ?? []) as WishData[];
-  const pendingPostcards = (listQuery.data?.postcards ?? []) as PostcardData[];
+  const [search, setSearch] = useState('');
+  const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
+
+  const allWishes = (listQuery.data?.wishes ?? []) as WishData[];
+  const allPostcards = (listQuery.data?.postcards ?? []) as PostcardData[];
+
+  const q = search.trim().toLowerCase();
+  const matches = (...fields: string[]) =>
+    q === '' || fields.some((f) => f.toLowerCase().includes(q));
+
+  // Both lists come back newest-first; optionally flip to oldest-first.
+  const sortRows = <T extends { createdAt: Date | string }>(rows: T[]): T[] =>
+    [...rows].sort((a, b) => {
+      const ta = new Date(a.createdAt).getTime();
+      const tb = new Date(b.createdAt).getTime();
+      return sortDir === 'desc' ? tb - ta : ta - tb;
+    });
+
+  const pendingWishes = sortRows(
+    allWishes.filter((w) => matches(w.text)),
+  );
+  const pendingPostcards = sortRows(
+    allPostcards.filter((p) => matches(p.message, p.signature, p.doodle)),
+  );
 
   async function act(
     mutate: { mutateAsync: (input: { id: number }) => Promise<unknown> },
@@ -327,13 +350,26 @@ function PendingTab() {
     }
   }
 
+  async function clearAll() {
+    try {
+      await clearPending.mutateAsync();
+      toast.success('Pending queue cleared');
+      await listQuery.refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to clear');
+    }
+  }
+
   if (listQuery.isLoading) {
     return (
       <p className="font-hand py-16 text-center text-2xl text-ink-soft">checking the holding pen…</p>
     );
   }
 
-  if (pendingWishes.length === 0 && pendingPostcards.length === 0) {
+  const hasAny = allWishes.length + allPostcards.length > 0;
+  const hasVisible = pendingWishes.length + pendingPostcards.length > 0;
+
+  if (!hasAny) {
     return (
       <div className="sticker-card p-10 text-center">
         <div className="text-5xl">🕊️</div>
@@ -345,112 +381,144 @@ function PendingTab() {
   }
 
   return (
-    <div className="space-y-10">
-      {/* Flagged wishes */}
-      <section>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-display text-xl font-semibold" style={{ color: POST_OFFICE_TEAL }}>
-            Flagged wishes
-            <span className="ml-2 rounded-full bg-[#3e8e8a1a] px-2.5 py-0.5 text-sm font-extrabold text-[#3E8E8A]">
-              {pendingWishes.length}
-            </span>
-          </h2>
-          {pendingWishes.length > 1 && (
-            <button
-              onClick={() => void approveAll('wish', pendingWishes.map((w) => w.id))}
-              className="btn-primary !px-4 !py-1.5 text-sm"
-            >
-              Approve all ({pendingWishes.length})
-            </button>
-          )}
+    <div className="space-y-8">
+      {/* search + sort + clear controls */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative min-w-[200px] flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search pending…"
+            className="w-full rounded-full border-[3px] border-white bg-cream py-2.5 pl-9 pr-4 font-bold text-ink shadow-inner outline-none focus:border-[#8fd4d1]"
+          />
         </div>
-        {pendingWishes.length === 0 ? (
-          <p className="font-hand text-lg text-ink-soft">no flagged wishes</p>
-        ) : (
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {pendingWishes.map((w) => (
-              <li key={w.id} className="sticker-card p-4">
-                <div className="flex items-start gap-2.5">
-                  <span
-                    className="mt-1.5 h-3.5 w-3.5 shrink-0 rounded-full border-2 border-white shadow"
-                    style={{ background: w.accent }}
-                  />
-                  <div className="min-w-0">
-                    <p className="font-hand text-xl leading-tight text-ink">{w.text}</p>
-                    <p className="mt-1 text-xs font-bold text-ink-soft">{fmtDateTime(w.createdAt)}</p>
-                  </div>
-                </div>
-                <div className="mt-3 flex gap-2 border-t-2 border-dashed border-[#3e8e8a33] pt-3">
-                  <button
-                    onClick={() => void act(approveWish, w.id, 'Wish approved')}
-                    className="btn-primary flex-1 !px-3 !py-1.5 text-sm"
-                  >
-                    Approve
-                  </button>
-                  <ConfirmButton
-                    onConfirm={() => void act(rejectWish, w.id, 'Wish rejected')}
-                    label="Reject"
-                    confirmLabel="Sure?"
-                    tone="danger"
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+        <button
+          onClick={() => setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))}
+          className="btn-secondary !px-4 !py-2.5 text-sm"
+        >
+          <ArrowUpDown className="h-4 w-4" />
+          {sortDir === 'desc' ? 'Newest first' : 'Oldest first'}
+        </button>
+        <ConfirmButton
+          onConfirm={() => void clearAll()}
+          label="Clear pending"
+          confirmLabel="Sure? wipes all"
+          tone="danger"
+          icon={<Trash2 className="h-3.5 w-3.5" />}
+        />
+      </div>
 
-      {/* Flagged postcards */}
-      <section>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-display text-xl font-semibold" style={{ color: POST_OFFICE_TEAL }}>
-            Flagged postcards
-            <span className="ml-2 rounded-full bg-[#3e8e8a1a] px-2.5 py-0.5 text-sm font-extrabold text-[#3E8E8A]">
-              {pendingPostcards.length}
-            </span>
-          </h2>
-          {pendingPostcards.length > 1 && (
-            <button
-              onClick={() => void approveAll('postcard', pendingPostcards.map((p) => p.id))}
-              className="btn-primary !px-4 !py-1.5 text-sm"
-            >
-              Approve all ({pendingPostcards.length})
-            </button>
-          )}
+      {!hasVisible && (
+        <div className="sticker-card p-8 text-center">
+          <div className="text-4xl">🔍</div>
+          <p className="font-hand mt-2 text-2xl text-ink-soft">
+            no pending items match “{search}”
+          </p>
         </div>
-        {pendingPostcards.length === 0 ? (
-          <p className="font-hand text-lg text-ink-soft">no flagged postcards</p>
-        ) : (
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {pendingPostcards.map((p) => (
-              <li key={p.id} className="sticker-card p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-hand text-xl leading-tight text-ink">{p.message}</p>
-                  <span className="shrink-0 text-2xl" title="doodle">
-                    {p.doodle}
-                  </span>
-                </div>
-                <p className="font-hand mt-1 text-lg text-ink-soft">— {p.signature}</p>
-                <p className="mt-1 text-xs font-bold text-ink-soft">{fmtDateTime(p.createdAt)}</p>
-                <div className="mt-3 flex gap-2 border-t-2 border-dashed border-[#3e8e8a33] pt-3">
-                  <button
-                    onClick={() => void act(approvePostcard, p.id, 'Postcard approved')}
-                    className="btn-primary flex-1 !px-3 !py-1.5 text-sm"
-                  >
-                    Approve
-                  </button>
-                  <ConfirmButton
-                    onConfirm={() => void act(rejectPostcard, p.id, 'Postcard rejected')}
-                    label="Reject"
-                    confirmLabel="Sure?"
-                    tone="danger"
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      )}
+
+      {hasVisible && (
+        <div className="space-y-10">
+          {/* Flagged wishes */}
+          <section>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-display text-xl font-semibold" style={{ color: POST_OFFICE_TEAL }}>
+                Flagged wishes
+                <span className="ml-2 rounded-full bg-[#3e8e8a1a] px-2.5 py-0.5 text-sm font-extrabold text-[#3E8E8A]">
+                  {pendingWishes.length}
+                </span>
+              </h2>
+              {pendingWishes.length > 0 && (
+                <button
+                  onClick={() => void approveAll('wish', pendingWishes.map((w) => w.id))}
+                  className="btn-primary !px-4 !py-1.5 text-sm"
+                >
+                  Approve all ({pendingWishes.length})
+                </button>
+              )}
+            </div>
+            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {pendingWishes.map((w) => (
+                <li key={w.id} className="sticker-card p-4">
+                  <div className="flex items-start gap-2.5">
+                    <span
+                      className="mt-1.5 h-3.5 w-3.5 shrink-0 rounded-full border-2 border-white shadow"
+                      style={{ background: w.accent }}
+                    />
+                    <div className="min-w-0">
+                      <p className="font-hand text-xl leading-tight text-ink">{w.text}</p>
+                      <p className="mt-1 text-xs font-bold text-ink-soft">{fmtDateTime(w.createdAt)}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex gap-2 border-t-2 border-dashed border-[#3e8e8a33] pt-3">
+                    <button
+                      onClick={() => void act(approveWish, w.id, 'Wish approved')}
+                      className="btn-primary flex-1 !px-3 !py-1.5 text-sm"
+                    >
+                      Approve
+                    </button>
+                    <ConfirmButton
+                      onConfirm={() => void act(rejectWish, w.id, 'Wish rejected')}
+                      label="Reject"
+                      confirmLabel="Sure?"
+                      tone="danger"
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {/* Flagged postcards */}
+          <section>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-display text-xl font-semibold" style={{ color: POST_OFFICE_TEAL }}>
+                Flagged postcards
+                <span className="ml-2 rounded-full bg-[#3e8e8a1a] px-2.5 py-0.5 text-sm font-extrabold text-[#3E8E8A]">
+                  {pendingPostcards.length}
+                </span>
+              </h2>
+              {pendingPostcards.length > 0 && (
+                <button
+                  onClick={() => void approveAll('postcard', pendingPostcards.map((p) => p.id))}
+                  className="btn-primary !px-4 !py-1.5 text-sm"
+                >
+                  Approve all ({pendingPostcards.length})
+                </button>
+              )}
+            </div>
+            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {pendingPostcards.map((p) => (
+                <li key={p.id} className="sticker-card p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-hand text-xl leading-tight text-ink">{p.message}</p>
+                    <span className="shrink-0 text-2xl" title="doodle">
+                      {p.doodle}
+                    </span>
+                  </div>
+                  <p className="font-hand mt-1 text-lg text-ink-soft">— {p.signature}</p>
+                  <p className="mt-1 text-xs font-bold text-ink-soft">{fmtDateTime(p.createdAt)}</p>
+                  <div className="mt-3 flex gap-2 border-t-2 border-dashed border-[#3e8e8a33] pt-3">
+                    <button
+                      onClick={() => void act(approvePostcard, p.id, 'Postcard approved')}
+                      className="btn-primary flex-1 !px-3 !py-1.5 text-sm"
+                    >
+                      Approve
+                    </button>
+                    <ConfirmButton
+                      onConfirm={() => void act(rejectPostcard, p.id, 'Postcard rejected')}
+                      label="Reject"
+                      confirmLabel="Sure?"
+                      tone="danger"
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

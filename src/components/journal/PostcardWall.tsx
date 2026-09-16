@@ -12,6 +12,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { newClientId } from '@/lib/clientId';
 import { trpc } from '@/providers/trpc';
 import { useLanguage } from '@/lib/i18n';
 import type { Language } from '@/lib/i18n';
@@ -36,6 +37,8 @@ interface StoredPostcard {
   signature: string;
   doodle: DoodleId;
   date: string;
+  /** Per-submission id for idempotent writes (see lib/clientId). */
+  clientId?: string;
   /** true while the card only exists in this browser's outbox */
   pending?: boolean;
 }
@@ -60,7 +63,10 @@ function readUserCards(): StoredPostcard[] {
         typeof (c as StoredPostcard).id === 'string' &&
         typeof (c as StoredPostcard).message === 'string' &&
         DOODLES.some((d) => d.id === (c as StoredPostcard).doodle),
-    );
+    ).map((c) => ({
+      ...c,
+      clientId: typeof (c as StoredPostcard).clientId === 'string' ? (c as StoredPostcard).clientId : undefined,
+    }));
   } catch {
     return [];
   }
@@ -193,6 +199,11 @@ export default function PostcardWall() {
     }
   };
 
+  /* tRPC surfaces rate-limit rejections under this code. */
+  function isRateLimited(err: unknown): boolean {
+    return (err as { data?: { code?: string } } | null)?.data?.code === "TOO_MANY_REQUESTS";
+  }
+
   /* re-send a postcard that never made it off this device */
   const retryCard = (card: StoredPostcard) => {
     addPostcard.mutate(
@@ -200,6 +211,7 @@ export default function PostcardWall() {
         message: card.message.slice(0, 280),
         signature: card.signature.slice(0, 60),
         doodle: card.doodle,
+        clientId: card.clientId ?? newClientId(),
       },
       {
         onSuccess: () => {
@@ -217,7 +229,11 @@ export default function PostcardWall() {
             description: t('journal.postcards.pinnedToastDesc'),
           });
         },
-        onError: () => {
+        onError: (err) => {
+          if (isRateLimited(err)) {
+            toast(err.message);
+            return;
+          }
           toast(t('journal.postcards.undeliveredToast'), {
             action: {
               label: t('journal.postcards.undeliveredAction'),
@@ -239,6 +255,9 @@ export default function PostcardWall() {
     }
     // optimistic: prepend a temp row so the slam animation fires instantly
     const tempId = -Date.now();
+    // a fresh client id per submission; reused if this card later retries
+    const clientId = newClientId();
+    const cardWithId = { ...card, clientId };
     // a new row at the head shifts every offset — previously loaded older
     // pages would skip a card, so collapse back to the first page
     setOlderCards({ rows: [], nextCursor: null });
@@ -258,6 +277,7 @@ export default function PostcardWall() {
         message: card.message.slice(0, 280),
         signature: card.signature.slice(0, 60),
         doodle: card.doodle,
+        clientId,
       },
       {
         // on success nothing to do: the optimistic row is data-identical to
@@ -276,12 +296,12 @@ export default function PostcardWall() {
               : old,
           );
           setBackendDown(true);
-          pinLocal(card, true);
+          pinLocal(cardWithId, true);
           setJustPinned(card.id);
           toast(t('journal.postcards.undeliveredToast'), {
             action: {
               label: t('journal.postcards.undeliveredAction'),
-              onClick: () => void retryCard(card),
+              onClick: () => void retryCard(cardWithId),
             },
           });
         },

@@ -135,12 +135,25 @@ export const adminRouter = createRouter({
     const db = getDb(ctx.env);
     const [pendingWishes, pendingPostcards] = await Promise.all([
       db
-        .select()
+        .select({
+          id: wishes.id,
+          text: wishes.text,
+          accent: wishes.accent,
+          createdAt: wishes.createdAt,
+          status: wishes.status,
+        })
         .from(wishes)
         .where(eq(wishes.status, "pending"))
         .orderBy(desc(wishes.createdAt)),
       db
-        .select()
+        .select({
+          id: postcards.id,
+          message: postcards.message,
+          signature: postcards.signature,
+          doodle: postcards.doodle,
+          createdAt: postcards.createdAt,
+          status: postcards.status,
+        })
         .from(postcards)
         .where(eq(postcards.status, "pending"))
         .orderBy(desc(postcards.createdAt)),
@@ -205,9 +218,26 @@ export const adminRouter = createRouter({
       return { ok: true, count: input.ids.length };
     }),
 
+  /* Reject every row currently held for moderation — a one-tap "clear the
+   * queue". Rejected rows stay in the table (auditable) but are hidden from
+   * both the public wall and the Pending tab. */
+  clearPending: adminProcedure.mutation(async ({ ctx }) => {
+    const db = getDb(ctx.env);
+    await Promise.all([
+      db.update(wishes).set({ status: "rejected" }).where(eq(wishes.status, "pending")),
+      db.update(postcards).set({ status: "rejected" }).where(eq(postcards.status, "pending")),
+    ]);
+    return { ok: true as const };
+  }),
+
   listWishes: adminProcedure.query(async ({ ctx }) => {
     return getDb(ctx.env)
-      .select()
+      .select({
+        id: wishes.id,
+        text: wishes.text,
+        accent: wishes.accent,
+        createdAt: wishes.createdAt,
+      })
       .from(wishes)
       .orderBy(desc(wishes.createdAt), desc(wishes.id));
   }),
@@ -221,7 +251,13 @@ export const adminRouter = createRouter({
 
   listPostcards: adminProcedure.query(async ({ ctx }) => {
     return getDb(ctx.env)
-      .select()
+      .select({
+        id: postcards.id,
+        message: postcards.message,
+        signature: postcards.signature,
+        doodle: postcards.doodle,
+        createdAt: postcards.createdAt,
+      })
       .from(postcards)
       .orderBy(desc(postcards.createdAt), desc(postcards.id));
   }),

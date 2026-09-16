@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Bell } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTown } from '@/lib/town';
+import { newClientId } from '@/lib/clientId';
 import { trpc } from '@/providers/trpc';
 import { useLanguage } from '@/lib/i18n';
 import { playBellNote } from './sounds';
@@ -27,6 +28,8 @@ interface Wish {
   id: string;
   text: string;
   accent: string;
+  /** Per-submission id for idempotent writes (see lib/clientId). */
+  clientId?: string;
   fresh?: boolean;
   /** true while the wish only exists in this browser's outbox */
   pending?: boolean;
@@ -40,7 +43,7 @@ function loadWishes(): Wish[] {
       if (Array.isArray(arr)) {
         return arr
           .filter(
-            (w): w is { text: string; accent?: string } =>
+            (w): w is { text: string; accent?: string; clientId?: string } =>
               !!w && typeof (w as { text?: unknown }).text === 'string',
           )
           .map((w, i) => ({
@@ -48,6 +51,7 @@ function loadWishes(): Wish[] {
             text: w.text.slice(0, 60),
             accent:
               typeof w.accent === 'string' ? w.accent : WISH_ACCENTS[i % WISH_ACCENTS.length],
+            clientId: typeof w.clientId === 'string' ? w.clientId : undefined,
             pending: (w as { pending?: unknown }).pending === true,
           }));
       }
@@ -210,10 +214,15 @@ export default function Pavilion() {
     if (soundOn) playBellNote(i);
   };
 
+  /* tRPC surfaces rate-limit rejections under this code. */
+  function isRateLimited(err: unknown): boolean {
+    return (err as { data?: { code?: string } } | null)?.data?.code === "TOO_MANY_REQUESTS";
+  }
+
   /* re-send a wish that never made it off this device */
   const retryWish = (wish: Wish) => {
     addWishMutation.mutate(
-      { text: wish.text, accent: wish.accent },
+      { text: wish.text, accent: wish.accent, clientId: wish.clientId ?? newClientId() },
       {
         onSuccess: () => {
           // the server owns it now — drop it from the local outbox
@@ -222,7 +231,11 @@ export default function Pavilion() {
           void utils.town.listWishes.invalidate();
           toast(t('isle.pavilion.wishToast'));
         },
-        onError: () => {
+        onError: (err) => {
+          if (isRateLimited(err)) {
+            toast(err.message);
+            return;
+          }
           toast(t('isle.pavilion.undeliveredToast'), {
             action: {
               label: t('isle.pavilion.undeliveredAction'),
@@ -239,6 +252,7 @@ export default function Pavilion() {
     const text = draft.trim().slice(0, 60);
     if (!text) return;
     const accent = WISH_ACCENTS[Math.floor(Math.random() * WISH_ACCENTS.length)];
+    const clientId = newClientId();
     setDraft('');
     toast(t('isle.pavilion.wishToast'));
     if (useLocal) {
@@ -252,17 +266,35 @@ export default function Pavilion() {
     // pages would skip a wish, so collapse back to the first page
     setOlderWishes({ rows: [], nextCursor: null });
     utils.town.listWishes.setData(undefined, (old) => ({
-      items: [{ id: tempId, text, accent, createdAt: new Date() }, ...(old?.items ?? [])],
+      items: [
+        { id: tempId, text, accent, createdAt: new Date() },
+        ...(old?.items ?? []),
+      ],
       total: (old?.total ?? 0) + 1,
       nextCursor: old?.nextCursor ?? null,
     }));
     addWishMutation.mutate(
-      { text, accent },
+      { text, accent, clientId },
       {
         onSuccess: () => {
           void utils.town.listWishes.invalidate();
         },
-        onError: () => {
+        onError: (err) => {
+          // Rate-limited (per-day cap): say so plainly and drop the optimistic
+          // row. Don't park in the outbox — retrying won't help until tomorrow.
+          if (isRateLimited(err)) {
+            toast(err.message);
+            utils.town.listWishes.setData(undefined, (old) =>
+              old
+                ? {
+                    ...old,
+                    items: old.items.filter((w) => w.id !== tempId),
+                    total: Math.max(0, old.total - 1),
+                  }
+                : old,
+            );
+            return;
+          }
           // Backend unreachable: park the wish in the local outbox and say
           // so out loud, with a retry, instead of failing silently.
           const localId = `u${Date.now()}`;
@@ -276,7 +308,7 @@ export default function Pavilion() {
                 }
               : old,
           );
-          setUserWishes((w) => [...w, { id: localId, text, accent, fresh: true, pending: true }]);
+          setUserWishes((w) => [...w, { id: localId, text, accent, clientId, fresh: true, pending: true }]);
           toast(t('isle.pavilion.undeliveredToast'), {
             action: {
               label: t('isle.pavilion.undeliveredAction'),
