@@ -3,6 +3,11 @@ main = "api/worker.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
+# `wrangler deploy` deletes any dashboard-set plain-text (Text) variable that
+# is not declared here. keep_vars preserves them. Secrets are unaffected
+# either way — prefer adding ADMIN_TOKEN as a *Secret*, not Text.
+keep_vars = true
+
 # Production hostname. The domain must already be on Cloudflare; wrangler
 # creates the DNS record + certificate on first deploy.
 # NOTE: top-level keys must stay above the first [table] in TOML.
