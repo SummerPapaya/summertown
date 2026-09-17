@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useAnimate } from 'framer-motion';
 import { CalendarDays, ChevronLeft, ChevronRight, Heart, Images, X } from 'lucide-react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
@@ -111,6 +111,21 @@ function LikeButton({
   /* keyed so each tap replays the little burst animation */
   const [burst, setBurst] = useState(0);
 
+  /* The tally pops with the new number, but the animation has to run in place:
+   * giving this span a `key={count}` made React mount the new node without
+   * removing the old one, so the button rendered both totals side by side
+   * ("10" right after the first like). */
+  const [countRef, animateCount] = useAnimate();
+  useEffect(() => {
+    const el = countRef.current;
+    if (!el) return;
+    void animateCount(
+      el,
+      { y: [-6, 0], opacity: [0.4, 1] },
+      { type: 'spring', stiffness: 380, damping: 18 },
+    );
+  }, [count, animateCount, countRef]);
+
   return (
     <motion.button
       type="button"
@@ -146,10 +161,7 @@ function LikeButton({
         <Heart className={cn(size === 'sm' ? 'h-4 w-4' : 'h-5 w-5', liked && 'fill-current')} />
       </motion.span>
       <motion.span
-        key={count}
-        initial={{ y: -6, opacity: 0.4 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 380, damping: 18 }}
+        ref={countRef}
         className={cn(
           'font-display font-bold tabular-nums',
           size === 'sm' ? 'text-xs' : 'text-sm',
