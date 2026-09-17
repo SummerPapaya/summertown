@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { motion } from 'framer-motion';
-import { Apple, Camera, Film, KeyRound, Pencil, Trash2 } from 'lucide-react';
+import { Apple, Camera, Film, KeyRound, Pencil, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/providers/trpc';
 import { useLanguage } from '@/lib/i18n';
@@ -362,6 +362,7 @@ export default function AppleAdmin() {
     retry: false,
   });
   const deleteMutation = trpc.admin.deleteApplePhoto.useMutation();
+  const syncMutation = trpc.admin.syncJike.useMutation();
 
   const photos = (listQuery.data ?? []) as ApplePhotoData[];
 
@@ -424,6 +425,30 @@ export default function AppleAdmin() {
     }
   }
 
+  async function syncNow() {
+    try {
+      const r = await syncMutation.mutateAsync({});
+      const detail = t('apple.admin.syncDetail', {
+        fetched: r.fetched,
+        matched: r.matched,
+        imported: r.imported,
+        skipped: r.skipped,
+      });
+      /* The server reports a failed walk as ok:false + reason rather than
+       * throwing, so that a broken import never takes the page down. */
+      if (!r.ok) {
+        toast.error(r.reason ?? t('apple.admin.syncFailed'));
+      } else if (r.imported > 0) {
+        toast.success(t('apple.admin.syncDone', { n: r.imported }), { description: detail });
+      } else {
+        toast(t('apple.admin.syncNone'), { description: detail });
+      }
+      await listQuery.refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('apple.admin.syncFailed'));
+    }
+  }
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
@@ -440,6 +465,17 @@ export default function AppleAdmin() {
           </p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => void syncNow()}
+            disabled={syncMutation.isPending}
+            title={t('apple.admin.syncHint')}
+            className="btn-secondary !px-5 !py-2.5 text-sm disabled:opacity-60"
+          >
+            <RefreshCw
+              className={cn('h-4 w-4', syncMutation.isPending && 'animate-spin')}
+            />{' '}
+            {syncMutation.isPending ? t('apple.admin.syncing') : t('apple.admin.syncNow')}
+          </button>
           <button
             onClick={() => {
               setEditing(null);
