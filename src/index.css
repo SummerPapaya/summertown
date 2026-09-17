@@ -217,21 +217,59 @@
   }
 
   /* Lighter sibling of `.text-outline` for smaller copy that still sits on
-     the illustrated map (hero slogan). A 2px white ring plus a soft white
-     glow keeps it legible over mid-tone artwork without the sticker weight
-     of the display title. */
+     the illustrated map (hero slogan).
+
+     Uses a real glyph outline (`-webkit-text-stroke`) rather than directional
+     text-shadows. Eight shadow offsets only approximate the letterform, so
+     curves came out stair-stepped on phones and dense CJK strokes (thin, and
+     packed close together) looked ragged and blotchy. `paint-order: stroke
+     fill` keeps the stroke *behind* the fill, so glyph width is unchanged and
+     only the outer 2px of the 4px stroke shows — the same ring weight the old
+     shadow version aimed for, but with edges the font rasteriser antialiases
+     itself. Safari has honoured this on HTML text since 2017, Chrome since
+     123; the `@supports` block below covers anything older. */
   .text-halo {
+    paint-order: stroke fill;
+    -webkit-text-stroke: 4px #fff;
     text-shadow:
-      0 2px 0 #fff,
-      2px 0 0 #fff,
-      0 -2px 0 #fff,
-      -2px 0 0 #fff,
-      2px 2px 0 #fff,
-      -2px -2px 0 #fff,
-      2px -2px 0 #fff,
-      -2px 2px 0 #fff,
-      0 0 10px rgba(255, 255, 255, 0.9),
-      0 0 20px rgba(255, 255, 255, 0.6);
+      0 0 8px rgba(255, 255, 255, 0.85),
+      0 0 18px rgba(255, 255, 255, 0.5);
+  }
+
+  @supports not (paint-order: stroke fill) {
+    /* Fallback for engines without HTML-text paint-order: a 24-point ring with
+       a sub-pixel blur. The blur is what kills the stair-stepping — the old
+       8-direction version drew hard edges, so the spokes were visible. */
+    .text-halo {
+      -webkit-text-stroke: 0;
+      text-shadow:
+        0 1px 0.5px #fff,
+        0.7px 0.7px 0.5px #fff,
+        1px 0 0.5px #fff,
+        0.7px -0.7px 0.5px #fff,
+        0 -1px 0.5px #fff,
+        -0.7px -0.7px 0.5px #fff,
+        -1px 0 0.5px #fff,
+        -0.7px 0.7px 0.5px #fff,
+        2px 0 1px #fff,
+        1.9px 0.8px 1px #fff,
+        1.4px 1.4px 1px #fff,
+        0.8px 1.9px 1px #fff,
+        0 2px 1px #fff,
+        -0.8px 1.9px 1px #fff,
+        -1.4px 1.4px 1px #fff,
+        -1.9px 0.8px 1px #fff,
+        -2px 0 1px #fff,
+        -1.9px -0.8px 1px #fff,
+        -1.4px -1.4px 1px #fff,
+        -0.8px -1.9px 1px #fff,
+        0 -2px 1px #fff,
+        0.8px -1.9px 1px #fff,
+        1.4px -1.4px 1px #fff,
+        1.9px -0.8px 1px #fff,
+        0 0 8px rgba(255, 255, 255, 0.85),
+        0 0 18px rgba(255, 255, 255, 0.5);
+    }
   }
   .no-scrollbar::-webkit-scrollbar {
     display: none;
