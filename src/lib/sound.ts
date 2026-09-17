@@ -25,25 +25,66 @@ function audioCtx(): AudioContext | null {
 }
 
 /* ---- ocean ambience ------------------------------------------------------
- * A shore, synthesised: brown noise low-passed into a slow swell, plus a band
- * of white noise for the foam that arrives a beat later. Two LFOs at unrelated
- * rates — and two loop lengths that do not divide into each other — keep it
- * from ever repeating audibly.
+ * A shore, synthesised as a run of long overlapping swells over a floor that
+ * never goes away.
  *
- * Deliberately faint: this sits behind someone reading, not in front of them.
- * Fades in and out so toggling never clicks.
+ * Two things make a synthesised shore sound fake, and both are about timing:
+ *
+ *   - Swells that start from silence. A rising gain is only audible over the
+ *     last ~20dB of its climb, so ramping up from nothing spends most of its
+ *     time below hearing and then arrives all at once — a jolt, every few
+ *     seconds, forever. Each swell here is written out as a raised-cosine
+ *     curve, so the loudness climbs evenly across the whole rise (2.4–4s) and
+ *     falls evenly across the whole retreat (3.5–6s).
+ *
+ *   - Gaps. Real surf is continuous: something is always moving somewhere.
+ *     Waves are laid down every 2.5–7s while each one runs 6–12s, so two or
+ *     three are always in flight, and under them a low bed, a mid shore floor
+ *     and a light wind keep a lull from ever becoming silence.
+ *
+ * The result is meant to sit behind someone reading: unmistakably surf, with
+ * no single moment in it you could point at.
  * -------------------------------------------------------------------------- */
 
 /** Peak output. Well under the chime — meant to be felt more than heard.
  *  Raise for a closer shore, lower for one further down the beach. */
-const OCEAN_GAIN = 0.085;
-const BODY_SECONDS = 6;
-const FOAM_SECONDS = 4.5;
-const OCEAN_FADE = 1.2;
+const OCEAN_GAIN = 0.068;
+/** Fade used when the switch is flipped. Just long enough to avoid the click
+ *  of a step change on the master gain — this is the *only* fade in the
+ *  ambience. There is no loop to fade: waves are generated on the fly and
+ *  never repeat, so there is no seam to hide. */
+const OCEAN_FADE = 0.25;
 
-let ocean: { master: GainNode } | null = null;
+/** Levels of the three always-on layers, relative to OCEAN_GAIN. Together they
+ *  are the shore at rest — the level a lull settles back to, never silence.
+ *  Set WIND_LEVEL to 0 for surf with nothing else in it. */
+const BED_LEVEL = 0.13;
+const SHORE_LEVEL = 0.15;
+const WIND_LEVEL = 0.09;
+
+/** Seconds of noise kept around for waves to read from. */
+const NOISE_SECONDS = 8;
+
+let ocean: { master: GainNode; air: BiquadFilterNode } | null = null;
 /** whether the shore should be audible — survives a hidden tab */
 let oceanWanted = false;
+
+/** Reused by every wave; refilled whenever the graph is rebuilt. */
+let bodyBuf: AudioBuffer | null = null;
+let sprayBuf: AudioBuffer | null = null;
+
+/** Sources currently scheduled, so a toggle-off can tear them all down. */
+const live = new Set<AudioScheduledSourceNode>();
+let oceanTimer: number | null = null;
+/** when the next wave is due, in context time */
+let oceanNext = 0;
+/** bumped on every toggle so a pending teardown can tell it is stale */
+let oceanGen = 0;
+
+/** inclusive-exclusive random in [min, max) */
+function rand(min: number, max: number): number {
+  return min + Math.random() * (max - min);
+}
 
 /** Noise whose loop point has been crossfaded away, so it can run forever. */
 function noiseBuffer(ac: AudioContext, seconds: number, brown: boolean): AudioBuffer {
@@ -76,72 +117,297 @@ function noiseBuffer(ac: AudioContext, seconds: number, brown: boolean): AudioBu
   return buffer;
 }
 
-function buildOcean(ac: AudioContext): { master: GainNode } {
+/** Register a source so a toggle-off can stop it, and forget it when it ends. */
+function track(node: AudioScheduledSourceNode) {
+  live.add(node);
+  node.onended = () => {
+    live.delete(node);
+    try {
+      node.disconnect();
+    } catch {
+      /* already gone */
+    }
+  };
+}
+
+function buildOcean(ac: AudioContext): { master: GainNode; air: BiquadFilterNode } {
   const master = ac.createGain();
   master.gain.value = 0;
-  master.connect(ac.destination);
 
-  /* the swell — the deep body of the water */
-  const body = ac.createBufferSource();
-  body.buffer = noiseBuffer(ac, BODY_SECONDS, true);
-  body.loop = true;
+  /* Gentle top cut: the reference has almost nothing above 6kHz, and the
+     noise sources are full-bandwidth, so without this the result hisses. */
+  const air = ac.createBiquadFilter();
+  air.type = 'lowpass';
+  air.frequency.value = 6000;
+  air.Q.value = 0.5;
+  master.connect(air).connect(ac.destination);
 
-  const rumble = ac.createBiquadFilter();
-  rumble.type = 'highpass';
-  rumble.frequency.value = 45;
+  bodyBuf = noiseBuffer(ac, NOISE_SECONDS, true);
+  sprayBuf = noiseBuffer(ac, NOISE_SECONDS, false);
 
-  const rolloff = ac.createBiquadFilter();
-  rolloff.type = 'lowpass';
-  rolloff.frequency.value = 520;
-  rolloff.Q.value = 0.6;
+  /* --- the bed: the distant sea, always there so a lull is not silence --- */
+  const bed = ac.createBufferSource();
+  bed.buffer = bodyBuf;
+  bed.loop = true;
+  const bedLp = ac.createBiquadFilter();
+  bedLp.type = 'lowpass';
+  bedLp.frequency.value = 240;
+  bedLp.Q.value = 0.4;
+  const bedGain = ac.createGain();
+  bedGain.gain.value = BED_LEVEL;
+  bed.connect(bedLp).connect(bedGain).connect(master);
+  bed.start(0, rand(0, 6));
+  track(bed);
 
-  const swell = ac.createGain();
-  swell.gain.value = 0.6;
+  /* --- the shore floor: the wash that is always happening somewhere along
+         the beach. Without it the trough between two swells reads as the sea
+         stopping altogether, which is most of what made the old version
+         jump. Rolled off on top so it stays soft. --- */
+  const shore = ac.createBufferSource();
+  shore.buffer = sprayBuf;
+  shore.loop = true;
+  const shoreBp = ac.createBiquadFilter();
+  shoreBp.type = 'bandpass';
+  shoreBp.frequency.value = 820;
+  shoreBp.Q.value = 0.45;
+  const shoreLp = ac.createBiquadFilter();
+  shoreLp.type = 'lowpass';
+  shoreLp.frequency.value = 3200;
+  const shoreGain = ac.createGain();
+  shoreGain.gain.value = SHORE_LEVEL;
+  shore.connect(shoreBp).connect(shoreLp).connect(shoreGain).connect(master);
+  shore.start(0, rand(0, 6));
+  track(shore);
 
-  /* depth is well under the base so a trough is a lull, not silence */
-  const swellLfo = ac.createOscillator();
-  swellLfo.frequency.value = 0.055;
-  const swellDepth = ac.createGain();
-  swellDepth.gain.value = 0.34;
-  swellLfo.connect(swellDepth).connect(swell.gain);
+  /* a slow drift, so the floor breathes instead of sitting perfectly still */
+  const drift = ac.createOscillator();
+  drift.frequency.value = 0.037;
+  const driftDepth = ac.createGain();
+  driftDepth.gain.value = SHORE_LEVEL * 0.3;
+  drift.connect(driftDepth).connect(shoreGain.gain);
+  drift.start();
+  track(drift);
 
-  body.connect(rumble).connect(rolloff).connect(swell).connect(master);
+  /* --- wind over the water: a narrow band, gusting slowly --- */
+  const wind = ac.createBufferSource();
+  wind.buffer = bodyBuf;
+  wind.loop = true;
+  const windBp = ac.createBiquadFilter();
+  windBp.type = 'bandpass';
+  windBp.frequency.value = 470;
+  windBp.Q.value = 1.1;
+  const windGain = ac.createGain();
+  windGain.gain.value = WIND_LEVEL * 0.5;
+  wind.connect(windBp).connect(windGain).connect(master);
+  wind.start(0, rand(0, 6));
+  track(wind);
 
-  /* the foam — hiss that breaks just after each swell */
-  const foam = ac.createBufferSource();
-  foam.buffer = noiseBuffer(ac, FOAM_SECONDS, false);
-  foam.loop = true;
+  /* one LFO drives both the loudness and the band, so a gust brightens
+     as it gets louder — the way wind actually behaves */
+  const gust = ac.createOscillator();
+  gust.frequency.value = 0.045;
+  const gustDepth = ac.createGain();
+  gustDepth.gain.value = WIND_LEVEL * 0.4;
+  gust.connect(gustDepth).connect(windGain.gain);
+  const gustCut = ac.createGain();
+  gustCut.gain.value = 210;
+  gust.connect(gustCut).connect(windBp.frequency);
+  gust.start();
+  track(gust);
 
+  return { master, air };
+}
+
+/**
+ * One swell, written out as a single curve: a raised-cosine rise, a short
+ * crest, a raised-cosine retreat.
+ *
+ * A curve rather than two ramps because the shape is the whole point — see
+ * the note at the top of this section. An exponential ramp from silence (or
+ * two ramps meeting at a peak) puts almost all of the audible change in the
+ * last fraction of a second, and that is exactly what reads as a jolt.
+ */
+const CURVE_RATE = 24; // curve samples per second — the shape is slow, and
+                       // the values in between are interpolated linearly
+function swellCurve(peak: number, rise: number, crest: number, fall: number): Float32Array {
+  const span = rise + crest + fall;
+  const n = Math.max(16, Math.round(span * CURVE_RATE));
+  const out = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const t = (i / (n - 1)) * span;
+    if (t < rise) out[i] = peak * 0.5 * (1 - Math.cos((Math.PI * t) / rise));
+    else if (t < rise + crest) out[i] = peak;
+    else out[i] = peak * 0.5 * (1 + Math.cos((Math.PI * (t - rise - crest)) / fall));
+  }
+  return out;
+}
+
+/**
+ * Lay down one swell starting at `at`, and return how long it runs.
+ *
+ * The foam brightening towards the crest and then darkening as it draws back
+ * is the whole trick: the ear reads the long falling hiss as water retreating
+ * over shingle. Without it you get a noise burst, not a wave.
+ */
+function scheduleWave(ac: AudioContext, dest: AudioNode, at: number): number {
+  if (!bodyBuf || !sprayBuf) return 4;
+
+  /* Long and soft: 2.4–4s rising, up to a second on top, 3.5–6s drawing
+     back — a gentle shore, not a breaker. Every duration, level, filter
+     corner and stereo position is randomised, so no swell repeats. */
+  const rise = rand(2.4, 4);
+  const crest = rand(0.4, 1.2);
+  const fall = rand(3.5, 6);
+  const total = rise + crest + fall;
+  const pan = rand(-0.5, 0.5);
+  const foamPeak = rand(1.1, 1.8);
+  const bodyPeak = foamPeak * rand(0.4, 0.65);
+  const breakAt = at + rise;
+
+  /* --- body: the water moving underneath, dark and a beat behind --- */
+  const b = ac.createBufferSource();
+  b.buffer = bodyBuf;
+  b.loop = true;
+  /* Cut the sub-bass: the reference puts only ~5% of its energy below 150Hz,
+     and a brown-noise body left unfiltered dominates that band and turns the
+     whole thing into a rumble. */
+  const hp = ac.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 110;
+  const lp = ac.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.Q.value = 0.7;
+  const bg = ac.createGain();
+  bg.gain.value = 0;
+  const bpan = ac.createStereoPanner();
+  bpan.pan.value = pan * 0.7;
+  b.connect(hp).connect(lp).connect(bg).connect(bpan).connect(dest);
+
+  /* The body sits under the foam: it is the water moving, not the sound of
+     the water. Kept well back so the mid-band foam stays in front. */
+  bg.gain.setValueCurveAtTime(swellCurve(bodyPeak, rise, crest, fall), at, total);
+  lp.frequency.setValueAtTime(240, at);
+  lp.frequency.exponentialRampToValueAtTime(rand(620, 900), breakAt + crest * 0.5);
+  lp.frequency.exponentialRampToValueAtTime(300, at + total);
+  b.start(at, rand(0, 6));
+  b.stop(at + total + 0.05);
+  track(b);
+
+  /* --- foam: the wash. Starts a little after the body and runs a little
+         longer, so the two never move as one block. --- */
+  const s = ac.createBufferSource();
+  s.buffer = sprayBuf;
+  s.loop = true;
   const band = ac.createBiquadFilter();
   band.type = 'bandpass';
-  band.frequency.value = 1700;
-  band.Q.value = 0.7;
+  band.Q.value = 0.5;
+  const sg = ac.createGain();
+  sg.gain.value = 0;
+  const span = ac.createStereoPanner();
+  span.pan.value = pan;
+  s.connect(band).connect(sg).connect(span).connect(dest);
 
-  const hiss = ac.createGain();
-  hiss.gain.value = 0.05;
+  /* Foam carries the level. The reference is mid-forward — roughly half its
+     energy sits between 600Hz and 2kHz — so the band starts there, opens up
+     towards the crest and sweeps back down as the wash retreats, rather than
+     living up at 3kHz. */
+  const sRise = rise * 0.92;
+  const sFall = fall * 1.05;
+  const sAt = at + rise - sRise;
+  const sTotal = sRise + crest + sFall;
+  sg.gain.setValueCurveAtTime(swellCurve(foamPeak, sRise, crest, sFall), sAt, sTotal);
+  band.frequency.setValueAtTime(rand(620, 900), sAt);
+  band.frequency.exponentialRampToValueAtTime(rand(1300, 2000), breakAt + crest * 0.5);
+  band.frequency.exponentialRampToValueAtTime(rand(480, 720), sAt + sTotal);
+  s.start(sAt, rand(0, 6));
+  s.stop(sAt + sTotal + 0.05);
+  track(s);
 
-  const foamLfo = ac.createOscillator();
-  foamLfo.frequency.value = 0.038;
-  const foamDepth = ac.createGain();
-  foamDepth.gain.value = 0.045;
-  foamLfo.connect(foamDepth).connect(hiss.gain);
+  /* --- sheen: the faint hiss riding on top of the crest. Slow in and slow
+         out and very quiet on purpose — a short bright splash is what makes a
+         shore sound as if it is clapping at you. --- */
+  const c = ac.createBufferSource();
+  c.buffer = sprayBuf;
+  c.loop = true;
+  const bright = ac.createBiquadFilter();
+  bright.type = 'highpass';
+  bright.frequency.value = 1600;
+  const dull = ac.createBiquadFilter();
+  dull.type = 'lowpass';
+  dull.frequency.value = 4200;
+  const cg = ac.createGain();
+  cg.gain.value = 0;
+  c.connect(bright).connect(dull).connect(cg).connect(span).connect(dest);
 
-  /* drift the band so the hiss never sits on one pitch */
-  const drift = ac.createOscillator();
-  drift.frequency.value = 0.021;
-  const driftDepth = ac.createGain();
-  driftDepth.gain.value = 420;
-  drift.connect(driftDepth).connect(band.frequency);
+  const cRise = rand(0.7, 1.3);
+  const cCrest = crest * 0.5;
+  const cFall = rand(1.8, 3.2);
+  const cAt = breakAt - cRise * 0.5;
+  cg.gain.setValueCurveAtTime(swellCurve(foamPeak * rand(0.09, 0.15), cRise, cCrest, cFall), cAt, cRise + cCrest + cFall);
+  c.start(cAt, rand(0, 6));
+  c.stop(cAt + cRise + cCrest + cFall + 0.05);
+  track(c);
 
-  foam.connect(band).connect(hiss).connect(master);
+  return total;
+}
 
-  body.start();
-  foam.start();
-  swellLfo.start();
-  foamLfo.start();
-  drift.start();
+/** Queue waves a little ahead of time, forever. */
+function pumpOcean(ac: AudioContext, master: GainNode) {
+  if (!ocean) return;
 
-  return { master };
+  /* A suspended context (pre-gesture, or a hidden tab) does not advance its
+   * clock, so scheduling now would pile every wave up at the same instant
+   * when it resumes. Wait instead. */
+  if (ac.state !== 'running' || (typeof document !== 'undefined' && document.hidden)) {
+    oceanTimer = window.setTimeout(() => pumpOcean(ac, master), 800);
+    return;
+  }
+
+  const start = Math.max(ac.currentTime + 0.08, oceanNext);
+  const length = scheduleWave(ac, master, start);
+
+  /* Swells are laid down every 3.5–9.5s while each one runs 6–12s, so the
+     next one is usually underway before the last has finished — the shore
+     never pauses between them, but a trough is still a trough. Surf arrives
+     in sets, so the interval varies rather than ticking. */
+  oceanNext = start + length * rand(0.55, 0.85);
+
+  const waitMs = Math.max(150, (oceanNext - ac.currentTime) * 1000 - 700);
+  oceanTimer = window.setTimeout(() => pumpOcean(ac, master), waitMs);
+}
+
+/** Stop everything and drop the graph, so nothing keeps running while muted. */
+function teardownOcean() {
+  if (oceanTimer !== null) {
+    clearTimeout(oceanTimer);
+    oceanTimer = null;
+  }
+  live.forEach((node) => {
+    try {
+      node.stop();
+    } catch {
+      /* already stopped */
+    }
+    try {
+      node.disconnect();
+    } catch {
+      /* already gone */
+    }
+  });
+  live.clear();
+  if (ocean) {
+    for (const node of [ocean.master, ocean.air]) {
+      try {
+        node.disconnect();
+      } catch {
+        /* already gone */
+      }
+    }
+    ocean = null;
+  }
+  bodyBuf = null;
+  sprayBuf = null;
+  oceanNext = 0;
 }
 
 /* Autoplay policies refuse audio until the page has been interacted with,
@@ -183,15 +449,34 @@ export function setOcean(on: boolean) {
   const ac = audioCtx();
   if (!ac) return;
   bindVisibility();
-  if (!ocean) ocean = buildOcean(ac);
+  const gen = ++oceanGen;
 
+  if (on) {
+    if (!ocean) {
+      ocean = buildOcean(ac);
+      oceanNext = 0;
+      pumpOcean(ac, ocean.master);
+    }
+    const now = ac.currentTime;
+    const gain = ocean.master.gain;
+    gain.cancelScheduledValues(now);
+    gain.setValueAtTime(Math.max(gain.value, 0.0001), now);
+    gain.linearRampToValueAtTime(OCEAN_GAIN, now + OCEAN_FADE);
+    if (ac.state !== 'running') resumeWhenAllowed(ac);
+    return;
+  }
+
+  /* Fade out, then drop the graph — a muted shore should not keep scheduling
+     waves or holding an AudioContext open. The generation check drops this
+     if they toggled back on before the fade finished. */
   const now = ac.currentTime;
-  const gain = ocean.master.gain;
+  const gain = ocean!.master.gain;
   gain.cancelScheduledValues(now);
   gain.setValueAtTime(Math.max(gain.value, 0.0001), now);
-  gain.linearRampToValueAtTime(on ? OCEAN_GAIN : 0, now + (on ? OCEAN_FADE : OCEAN_FADE * 0.6));
-
-  if (on) resumeWhenAllowed(ac);
+  gain.linearRampToValueAtTime(0, now + OCEAN_FADE * 0.6);
+  window.setTimeout(() => {
+    if (gen === oceanGen) teardownOcean();
+  }, OCEAN_FADE * 0.6 * 1000 + 150);
 }
 
 /** tiny windbell arpeggio */
