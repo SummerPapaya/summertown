@@ -157,7 +157,7 @@ function HeroOverlay({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -60, opacity: 0, transition: { duration: 0.35, delay: 0.05 } }}
             transition={{ delay: 1.55, duration: 0.7, ease: [0.22, 1.2, 0.36, 1] }}
-            className="text-halo mt-5 max-w-xl px-6 text-center text-xl font-bold text-ink"
+            className="text-sticker mt-5 max-w-xl px-6 text-center text-xl font-hand text-ink"
           >
             {t('hero.subtitle')}
           </motion.p>
@@ -192,7 +192,7 @@ function HeroOverlay({
             >
               <Mouse className="h-4 w-4" />
             </motion.span>
-            <span className="px-3 text-center font-hand text-xl text-ink-soft">
+            <span className="px-3 text-center font-hand text-xl text-white">
               {t('hero.scrollHint')}
             </span>
           </motion.div>

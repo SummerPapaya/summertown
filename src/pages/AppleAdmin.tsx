@@ -465,11 +465,14 @@ export default function AppleAdmin() {
           </p>
         </div>
         <div className="flex gap-2">
+          {/* font-hand so 步 renders in the same handwriting face as the rest of
+              the label — GBai Marker is a 1017-glyph subset with no 步 (U+6B65),
+              so that one glyph was silently falling back to a system sans. */}
           <button
             onClick={() => void syncNow()}
             disabled={syncMutation.isPending}
             title={t('apple.admin.syncHint')}
-            className="btn-secondary !px-5 !py-2.5 text-sm disabled:opacity-60"
+            className="btn-secondary !px-5 !py-2.5 font-hand text-sm disabled:opacity-60"
           >
             <RefreshCw
               className={cn('h-4 w-4', syncMutation.isPending && 'animate-spin')}

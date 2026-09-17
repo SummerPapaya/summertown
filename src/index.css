@@ -216,31 +216,34 @@
       4px 0 0 #fff;
   }
 
-  /* Lighter sibling of `.text-outline` for smaller copy that still sits on
-     the illustrated map (hero slogan).
+  /* Sticker-style outline for the hero slogan — lighter sibling of
+     `.text-outline` for smaller copy that still sits on the illustrated map.
 
      Uses a real glyph outline (`-webkit-text-stroke`) rather than directional
      text-shadows. Eight shadow offsets only approximate the letterform, so
      curves came out stair-stepped on phones and dense CJK strokes (thin, and
      packed close together) looked ragged and blotchy. `paint-order: stroke
      fill` keeps the stroke *behind* the fill, so glyph width is unchanged and
-     only the outer 2px of the 4px stroke shows — the same ring weight the old
-     shadow version aimed for, but with edges the font rasteriser antialiases
-     itself. Safari has honoured this on HTML text since 2017, Chrome since
+     only the outer half of the stroke shows, and the edge is rounded off by
+     the font rasteriser's own antialiasing rather than by a blur.
+
+     Deliberately *no* `text-shadow`: an earlier version added a soft white
+     halo (8px and 18px blurs) which read as glow and feathering instead of a
+     die-cut sticker edge.
+
+     Safari has honoured paint-order on HTML text since 2017, Chrome since
      123; the `@supports` block below covers anything older. */
-  .text-halo {
+  .text-sticker {
     paint-order: stroke fill;
-    -webkit-text-stroke: 4px #fff;
-    text-shadow:
-      0 0 8px rgba(255, 255, 255, 0.85),
-      0 0 18px rgba(255, 255, 255, 0.5);
+    -webkit-text-stroke: 3px #fff;
   }
 
   @supports not (paint-order: stroke fill) {
     /* Fallback for engines without HTML-text paint-order: a 24-point ring with
-       a sub-pixel blur. The blur is what kills the stair-stepping — the old
+       a sub-pixel blur. That blur only antialiases the ring (it stays under
+       1px) — it is not the glow the old version added, which is gone. The old
        8-direction version drew hard edges, so the spokes were visible. */
-    .text-halo {
+    .text-sticker {
       -webkit-text-stroke: 0;
       text-shadow:
         0 1px 0.5px #fff,
@@ -266,9 +269,7 @@
         0 -2px 1px #fff,
         0.8px -1.9px 1px #fff,
         1.4px -1.4px 1px #fff,
-        1.9px -0.8px 1px #fff,
-        0 0 8px rgba(255, 255, 255, 0.85),
-        0 0 18px rgba(255, 255, 255, 0.5);
+        1.9px -0.8px 1px #fff;
     }
   }
   .no-scrollbar::-webkit-scrollbar {
