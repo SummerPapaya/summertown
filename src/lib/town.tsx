@@ -22,6 +22,11 @@ interface TownState {
   /** true while a landmark detail card is open on the map (navbar tucks away) */
   mapDetailOpen: boolean;
   setMapDetailOpen: (open: boolean) => void;
+  /** true while any other full-screen overlay is open, e.g. the album's photo
+   *  sheet — the navbar is fixed above the page, so it has to get out of the
+   *  way rather than sit on top of the overlay's own close button. */
+  overlayOpen: boolean;
+  setOverlayOpen: (open: boolean) => void;
 }
 
 const TownContext = createContext<TownState | null>(null);
@@ -68,6 +73,7 @@ export function TownProvider({ children }: { children: ReactNode }) {
   });
   const [stamps, setStamps] = useState<string[]>(readStamps);
   const [mapDetailOpen, setMapDetailOpen] = useState(false);
+  const [overlayOpen, setOverlayOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.dataset.time = time;
@@ -118,8 +124,20 @@ export function TownProvider({ children }: { children: ReactNode }) {
       collectStamp,
       mapDetailOpen,
       setMapDetailOpen,
+      overlayOpen,
+      setOverlayOpen,
     }),
-    [time, setTime, soundOn, toggleSound, stamps, hasStamp, collectStamp, mapDetailOpen],
+    [
+      time,
+      setTime,
+      soundOn,
+      toggleSound,
+      stamps,
+      hasStamp,
+      collectStamp,
+      mapDetailOpen,
+      overlayOpen,
+    ],
   );
 
   return <TownContext.Provider value={value}>{children}</TownContext.Provider>;

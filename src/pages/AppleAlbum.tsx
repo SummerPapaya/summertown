@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useAnimate } from 'framer-motion';
 import { CalendarDays, ChevronLeft, ChevronRight, Heart, Images, X } from 'lucide-react';
 import { Link } from 'react-router';
@@ -7,6 +7,8 @@ import { trpc } from '@/providers/trpc';
 import { prettyDate, seededRandom } from '@/lib/apple';
 import { getDeviceId } from '@/lib/deviceId';
 import { useLanguage } from '@/lib/i18n';
+import { usePauseSmoothScroll } from '@/lib/smoothScroll';
+import { useTown } from '@/lib/town';
 import { cn } from '@/lib/utils';
 
 /** Shape of one row returned by town.listApplePhotos.
@@ -189,13 +191,67 @@ function ZoomModal({
 }) {
   const { t } = useLanguage();
   const fmt = usePrettyDate();
+  const { setOverlayOpen } = useTown();
+
+  /* Lenis would otherwise swallow the wheel and touch events meant for the
+   * caption pane (it listens on the document), and the album behind must not
+   * scroll while the sheet is up. */
+  usePauseSmoothScroll(true);
+
+  /* The navbar is fixed *above* this overlay (z-5000), so its language and
+   * time-of-day pills sat right on top of the close button on a phone. Tuck
+   * it away for as long as the sheet is open. */
+  useEffect(() => {
+    setOverlayOpen(true);
+    return () => setOverlayOpen(false);
+  }, [setOverlayOpen]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  /* The caption pane is the only scrolling band, so signal whether there is
+   * more below — a 500-character caption used to just look truncated. */
+  const paneRef = useRef<HTMLDivElement>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const measure = useCallback(() => {
+    const el = paneRef.current;
+    if (!el) return;
+    setHasMore(el.scrollHeight - el.scrollTop - el.clientHeight > 4);
+  }, []);
+
+  useEffect(() => {
+    measure();
+    /* the handwriting webfont lands after first paint and changes the line
+     * count under it, so measure again once it is ready */
+    void document.fonts.ready.then(measure);
+    const timer = window.setTimeout(measure, 400);
+    window.addEventListener('resize', measure);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('resize', measure);
+    };
+  }, [measure, photo.id]);
+
+  const caption = photo.description || t('apple.defaultDescription');
+  /* Short captions stay centred like a polaroid label; anything long enough
+   * to need paragraphs reads far better ranged left. */
+  const rangedLeft = caption.length > 160;
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onClick={onClose}
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-[#4a4470]/60 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label={photo.description || t('apple.photoAlt')}
+      className="fixed inset-0 z-[6000] flex items-center justify-center overscroll-contain bg-[#4a4470]/60 p-3 backdrop-blur-sm sm:p-4"
     >
       <motion.div
         initial={{ scale: 0.7, rotate: -4, y: 30 }}
@@ -203,49 +259,95 @@ function ZoomModal({
         exit={{ scale: 0.75, rotate: 3, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 260, damping: 22 }}
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-md rounded-lg bg-white p-4 pb-6 shadow-[0_30px_70px_rgba(74,68,112,0.4)]"
+        /* Capped to the viewport and split into pinned / scrolling / pinned
+         * bands. Previously the card grew as tall as its caption, so on a
+         * phone a long description pushed both the like and the close button
+         * off-screen with no way to scroll to them. */
+        className="relative flex max-h-[92dvh] w-full max-w-md flex-col overflow-hidden rounded-lg bg-white shadow-[0_30px_70px_rgba(74,68,112,0.4)]"
       >
         <button
           onClick={onClose}
           aria-label={t('apple.close')}
-          className="absolute -right-3 -top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-white bg-[#E8563F] text-white shadow-md transition-transform hover:scale-110"
+          /* Sits inside the card rather than hanging off its corner: the
+           * negative offset reached into the navbar's strip on narrow
+           * screens. */
+          className="absolute right-2.5 top-2.5 z-20 flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-white bg-[#E8563F] text-white shadow-md transition-transform hover:scale-110"
         >
           <X className="h-4 w-4" />
         </button>
-        <div className="relative overflow-hidden rounded-sm bg-cream">
-          {photo.videoUrl ? (
-            <>
-              <video
-                src={photo.videoUrl}
-                /* The grid already cached the small copy, so the poster costs
-                 * nothing extra — using the 1500 px one would. */
-                poster={photo.thumbUrl ?? photo.imageUrl}
-                autoPlay
-                muted
-                loop
-                playsInline
-                className="max-h-[60vh] w-full object-cover"
+
+        <div className="shrink-0 p-4 pb-0">
+          <div className="relative overflow-hidden rounded-sm bg-cream">
+            {photo.videoUrl ? (
+              <>
+                <video
+                  src={photo.videoUrl}
+                  /* The grid already cached the small copy, so the poster costs
+                   * nothing extra — using the 1500 px one would. */
+                  poster={photo.thumbUrl ?? photo.imageUrl}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  className="max-h-[38vh] w-full object-cover sm:max-h-[42vh]"
+                />
+                <span className="absolute left-2 top-2 rounded-full border-2 border-white bg-[#E8563F] px-2.5 py-0.5 text-xs font-extrabold uppercase tracking-wide text-white shadow">
+                  {t('apple.liveBadge')}
+                </span>
+              </>
+            ) : (
+              <img
+                src={photo.imageUrl}
+                alt={photo.description || t('apple.photoAlt')}
+                className="max-h-[38vh] w-full object-cover sm:max-h-[42vh]"
               />
-              <span className="absolute left-2 top-2 rounded-full border-2 border-white bg-[#E8563F] px-2.5 py-0.5 text-xs font-extrabold uppercase tracking-wide text-white shadow">
-                {t('apple.liveBadge')}
-              </span>
-            </>
-          ) : (
-            <img
-              src={photo.imageUrl}
-              alt={photo.description || t('apple.photoAlt')}
-              className="max-h-[60vh] w-full object-cover"
+            )}
+          </div>
+        </div>
+
+        {/* The scrolling band itself must be the flex item. A wrapper plus an
+            inner `absolute inset-0` scroller looks equivalent but is not: an
+            absolutely positioned child contributes no height, so the card
+            shrink-wraps to the image and never reaches its max-height, which
+            leaves the caption with almost no room. Keeping the scroll on the
+            flexible item gives the card a content height that overflows the
+            cap, and only then does the caption band shrink and scroll —
+            compact for a short caption, scrollable for a long one. */}
+        <div
+          ref={paneRef}
+          onScroll={measure}
+          data-lenis-prevent=""
+          className="min-h-0 grow overflow-y-auto overscroll-contain px-4 py-4"
+        >
+          <p
+            className={cn(
+              'font-hand whitespace-pre-line text-2xl leading-snug text-ink',
+              rangedLeft ? 'text-left' : 'text-center',
+            )}
+          >
+            {caption}
+          </p>
+          {hasMore && (
+            <div
+              aria-hidden
+              /* sticks to the bottom of the visible band while there is more
+                 below, so a long caption never reads as simply cut off */
+              className="pointer-events-none sticky bottom-0 -mt-10 h-10 bg-gradient-to-t from-white to-transparent"
             />
           )}
         </div>
-        <p className="font-hand mt-4 text-center text-2xl leading-snug text-ink">
-          {photo.description || t('apple.defaultDescription')}
-        </p>
-        <p className="font-display mt-1 text-center text-sm font-semibold" style={{ color: APPLE_RED }}>
-          {fmt(photo.date)}
-        </p>
-        <div className="mt-3 flex justify-center">
-          <LikeButton photoId={photo.id} api={likeApi} size="md" />
+
+        {/* Pinned so both controls stay reachable however long the caption is. */}
+        <div className="shrink-0 space-y-2 border-t border-ink/10 px-4 py-3">
+          <p
+            className="font-display text-center text-sm font-semibold"
+            style={{ color: APPLE_RED }}
+          >
+            {fmt(photo.date)}
+          </p>
+          <div className="flex justify-center">
+            <LikeButton photoId={photo.id} api={likeApi} size="md" />
+          </div>
         </div>
       </motion.div>
     </motion.div>

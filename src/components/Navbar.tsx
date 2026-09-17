@@ -31,7 +31,7 @@ const pill =
   'flex items-center gap-2 rounded-full border-[3px] border-white bg-[rgba(255,249,239,0.75)] shadow-sticker backdrop-blur-[12px]';
 
 export default function Navbar() {
-  const { time, setTime, soundOn, toggleSound, mapDetailOpen } = useTown();
+  const { time, setTime, soundOn, toggleSound, mapDetailOpen, overlayOpen } = useTown();
   const { lang, setLang, t } = useLanguage();
   const [hidden, setHidden] = useState(false);
   const lastY = useRef(0);
@@ -48,7 +48,7 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const tucked = hidden || mapDetailOpen;
+  const tucked = hidden || mapDetailOpen || overlayOpen;
 
   return (
     <motion.header
