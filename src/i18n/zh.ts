@@ -43,7 +43,7 @@ export const zh: DeepL10n<Messages> = {
     tourDone: '巡游结束啦——接下来，自由探索吧。',
   },
   map: {
-    passport: '护照 {n}/14',
+    passport: '护照 {n}/{total}',
     hint: '拖动指针，四处逛逛 · 点击小屋，探头瞧瞧',
     zoomIn: '放大',
     zoomOut: '缩小',
@@ -192,8 +192,12 @@ export const zh: DeepL10n<Messages> = {
     crossPier: '走过长堤 →',
     detailsAria: '{name}详情',
     sceneAlt: '{name}场景',
-    stampToast: '盖章成功！{n}/14',
+    stampToast: '盖章成功！{n}/{total}',
     stampToastDesc: '{name}已经收进你的护照啦。',
+    /* shown when the last stamp lands — the passport is now complete */
+    stampComplete: '全部 {total} 枚印章集齐啦！',
+    stampCompleteDesc: '点下面的按钮，去生成你的专属护照吧 ✨',
+    stampCompleteAction: '生成护照',
     podcastRadio: 'Summer FM 夏天镇播客',
     podcastIsle: '风铃屿播客',
     appleAlbum: '一天一苹果 · 打开相册 →',
@@ -278,7 +282,7 @@ export const zh: DeepL10n<Messages> = {
       lilyAria: '第 {n} 株铃兰',
       sceneAlt: '从长堤最后一块木板上看到的风铃屿',
       stampToast: '获得印章——风铃屿！',
-      stampToastDesc: '护照上又多了一分海水的分量。（1/14）',
+      stampToastDesc: '护照上又多了一分海水的分量。（{n}/{total}）',
       borderAria: '铃兰镶边',
     },
     pavilion: {
@@ -354,10 +358,10 @@ export const zh: DeepL10n<Messages> = {
     passport: {
       srTitle: '护照——地标索引',
       filterAria: '筛选地标',
-      collected: '已收集 {n}/14',
+      collected: '已收集 {n}/{total}',
       dareYou: '我们打赌你能集齐所有印章',
       noStamps: '一枚印章都还没有——地图就在上面 👆',
-      badgeAria: '已收集 {n} / 14 枚印章',
+      badgeAria: '已收集 {n} / {total} 枚印章',
       chips: {
         all: '全部',
         culture: '文化',

@@ -3,6 +3,7 @@ import type { RefObject } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useTown } from '@/lib/town';
+import { TOTAL_STAMPS } from '@/lib/landmarks';
 import { useLanguage } from '@/lib/i18n';
 import { playLilyNote } from './sounds';
 import { NoteGlyph, WordRise } from './shared';
@@ -115,7 +116,7 @@ export default function LilyMeadow({
 }: {
   sectionRef?: RefObject<HTMLElement | null>;
 }) {
-  const { soundOn, collectStamp } = useTown();
+  const { soundOn, collectStamp, stamps } = useTown();
   const { t } = useLanguage();
   const reduced = usePrefersReducedMotion();
 
@@ -131,7 +132,11 @@ export default function LilyMeadow({
           /* stepping off the pier earns the isle stamp (passport contract) */
           if (collectStamp('windbell-isle')) {
             toast(t('isle.meadow.stampToast'), {
-              description: t('isle.meadow.stampToastDesc'),
+              /* the desc used to hardcode "1 of 14" — use the real tally */
+              description: t('isle.meadow.stampToastDesc', {
+                n: stamps.length + 1,
+                total: TOTAL_STAMPS,
+              }),
             });
           }
         }}

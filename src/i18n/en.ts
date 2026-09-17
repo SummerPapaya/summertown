@@ -39,7 +39,7 @@ export const en = {
     tourDone: 'Tour complete — now go poke everything.',
   },
   map: {
-    passport: 'Passport {n}/14',
+    passport: 'Passport {n}/{total}',
     hint: 'Drag to wander · Click a building to peek inside',
     zoomIn: 'Zoom in',
     zoomOut: 'Zoom out',
@@ -240,8 +240,12 @@ export const en = {
     crossPier: 'Cross the pier →',
     detailsAria: '{name} details',
     sceneAlt: '{name} scene',
-    stampToast: 'Stamped! {n} of 14.',
+    stampToast: 'Stamped! {n} of {total}.',
     stampToastDesc: '{name} is now in your passport.',
+    /* shown when the last stamp lands — the passport is now complete */
+    stampComplete: 'All {total} stamps collected!',
+    stampCompleteDesc: 'Tap the button below to make your passport ✨',
+    stampCompleteAction: 'Make passport',
     podcastRadio: 'Summer FM podcast',
     podcastIsle: 'Windbell Isle podcast',
     appleAlbum: 'An Apple A Day — open the album →',
@@ -326,7 +330,7 @@ export const en = {
       lilyAria: 'Lily of the valley stem {n}',
       sceneAlt: 'Windbell Isle seen from the last plank of the pier',
       stampToast: 'Stamp collected — Windbell Isle!',
-      stampToastDesc: 'Your passport just got sea-heavier. (1 of 14)',
+      stampToastDesc: 'Your passport just got sea-heavier. ({n} of {total})',
       borderAria: 'A border of lilies of the valley',
     },
     pavilion: {
@@ -408,10 +412,10 @@ export const en = {
     passport: {
       srTitle: 'The Passport — landmark index',
       filterAria: 'Filter landmarks',
-      collected: '{n}/14 collected',
+      collected: '{n}/{total} collected',
       dareYou: 'collect them all, we dare you',
       noStamps: 'no stamps yet — the map is right there 👆',
-      badgeAria: '{n} of 14 stamps collected',
+      badgeAria: '{n} of {total} stamps collected',
       chips: {
         all: 'All',
         culture: 'Culture',

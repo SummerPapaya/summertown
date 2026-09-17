@@ -103,15 +103,20 @@ export function TownProvider({ children }: { children: ReactNode }) {
   const setTime = useCallback((t: TimeOfDay) => setTimeState(t), []);
   const toggleSound = useCallback(() => setSoundOn((s) => !s), []);
   const hasStamp = useCallback((id: string) => stamps.includes(id), [stamps]);
-  const collectStamp = useCallback((id: string) => {
-    let added = false;
-    setStamps((prev) => {
-      if (prev.includes(id)) return prev;
-      added = true;
-      return [...prev, id];
-    });
-    return added;
-  }, []);
+  const collectStamp = useCallback(
+    (id: string) => {
+      /* Decide from the committed state, not inside the updater — a state
+       * updater runs during the next render, so a flag assigned there is
+       * still `false` when this function returns. It happened to work when
+       * React eagerly evaluated the updater and silently dropped the stamp
+       * whenever another update (e.g. the card's entrance animation) was
+       * already pending, which the "collect" toast depended on. */
+      if (stamps.includes(id)) return false;
+      setStamps((prev) => (prev.includes(id) ? prev : [...prev, id]));
+      return true;
+    },
+    [stamps],
+  );
 
   const value = useMemo(
     () => ({

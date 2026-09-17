@@ -209,6 +209,16 @@ export const LANDMARKS: Landmark[] = [
   }),
 ];
 
+/**
+ * Stamps needed to complete the passport. Every landmark is stampable, so this
+ * is just the registry size — derive it so the "n of total" copy cannot drift
+ * when one is added (it used to be hardcoded 14 in five separate strings).
+ *
+ * Note the pier is *not* a landmark: `PIER` below is a separate map prop with
+ * no stamp of its own.
+ */
+export const TOTAL_STAMPS = LANDMARKS.length;
+
 export const PIER = {
   id: 'long-pier',
   nameKey: 'map.pier.name',

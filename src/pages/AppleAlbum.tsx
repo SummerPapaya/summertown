@@ -277,6 +277,9 @@ function ZoomModal({
         </button>
 
         <div className="shrink-0 p-4 pb-0">
+          {/* object-contain, not object-cover: the sheet used to fill the band
+              and crop the overflow, which cut the apple off tall portraits.
+              The cream box doubles as the mat around whatever is letterboxed. */}
           <div className="relative overflow-hidden rounded-sm bg-cream">
             {photo.videoUrl ? (
               <>
@@ -289,7 +292,7 @@ function ZoomModal({
                   muted
                   loop
                   playsInline
-                  className="max-h-[38vh] w-full object-cover sm:max-h-[42vh]"
+                  className="mx-auto block max-h-[50vh] w-full object-contain sm:max-h-[55vh]"
                 />
                 <span className="absolute left-2 top-2 rounded-full border-2 border-white bg-[#E8563F] px-2.5 py-0.5 text-xs font-extrabold uppercase tracking-wide text-white shadow">
                   {t('apple.liveBadge')}
@@ -299,7 +302,7 @@ function ZoomModal({
               <img
                 src={photo.imageUrl}
                 alt={photo.description || t('apple.photoAlt')}
-                className="max-h-[38vh] w-full object-cover sm:max-h-[42vh]"
+                className="mx-auto block max-h-[50vh] w-full object-contain sm:max-h-[55vh]"
               />
             )}
           </div>

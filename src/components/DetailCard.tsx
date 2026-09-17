@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { motion, type Variants } from 'framer-motion';
 import { toast } from 'sonner';
 import {
@@ -45,7 +45,7 @@ import {
   Stamp,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { Landmark } from '@/lib/landmarks';
+import { TOTAL_STAMPS, type Landmark } from '@/lib/landmarks';
 import { useTown } from '@/lib/town';
 import { useLanguage, enText } from '@/lib/i18n';
 
@@ -203,6 +203,7 @@ function HoverPreviewRow({
 export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCardProps) {
   const { stamps, collectStamp } = useTown();
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const name = t(lm.nameKey);
   const [justStamped, setJustStamped] = useState(false);
   const stamped = stamps.includes(lm.id);
@@ -220,13 +221,31 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
 
   const collect = () => {
     if (stamped) return;
-    const added = collectStamp(lm.id);
-    if (added) {
-      setJustStamped(true);
-      toast(t('detail.stampToast', { n: stamps.length + 1 }), {
-        description: t('detail.stampToastDesc', { name }),
+    if (!collectStamp(lm.id)) return;
+    setJustStamped(true);
+    const n = stamps.length + 1;
+
+    /* Last one — the passport is complete. Offer the generator rather than
+       yanking them there mid-stamp: the toast sits there until they take it,
+       and the button on it is what does the navigating. The card stays open so
+       the freshly stamped state is what they come back to if they dismiss it. */
+    if (n >= TOTAL_STAMPS) {
+      toast(t('detail.stampComplete', { total: TOTAL_STAMPS }), {
+        description: t('detail.stampCompleteDesc'),
+        duration: 12000,
+        action: {
+          label: t('detail.stampCompleteAction'),
+          onClick: () => {
+            void navigate('/journal#passport', { state: { makePassport: true } });
+          },
+        },
       });
+      return;
     }
+
+    toast(t('detail.stampToast', { n, total: TOTAL_STAMPS }), {
+      description: t('detail.stampToastDesc', { name }),
+    });
   };
 
   return (

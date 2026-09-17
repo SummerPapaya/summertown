@@ -11,6 +11,7 @@ import {
   LANDMARKS,
   FILTERS,
   PIER,
+  TOTAL_STAMPS,
   WORLD,
   byId,
 } from '@/lib/landmarks';
@@ -861,7 +862,7 @@ export default function TownMap({
           <div className="flex items-center gap-2 rounded-full border-[3px] border-white bg-paper/90 py-2 pl-3 pr-4 shadow-sticker backdrop-blur-sm">
             <StampIcon className="h-6 w-6" />
             <span className="font-display text-sm font-semibold text-ink">
-              {t('map.passport', { n: stamps.length })}
+              {t('map.passport', { n: stamps.length, total: TOTAL_STAMPS })}
             </span>
           </div>
         </div>

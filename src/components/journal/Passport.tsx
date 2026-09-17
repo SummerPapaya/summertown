@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowUpRight, Download, Stamp } from 'lucide-react';
-import { FILTERS, LANDMARKS } from '@/lib/landmarks';
+import { FILTERS, LANDMARKS, TOTAL_STAMPS } from '@/lib/landmarks';
 import type { FilterId, Landmark } from '@/lib/landmarks';
 import { useTown } from '@/lib/town';
 import { useLanguage } from '@/lib/i18n';
@@ -39,14 +39,23 @@ export default function Passport() {
   const { t } = useLanguage();
   const reduced = useReducedMotion();
   const [filter, setFilter] = useState<FilterId>('all');
+  /* set by the map when it sends you here after the final stamp lands */
+  const { state } = useLocation();
+  const askedForPassport = (state as { makePassport?: boolean } | null)?.makePassport;
 
   const visible = LANDMARKS.filter((l) => filter === 'all' || l.filter === filter);
   const n = stamps.length;
-  const complete = n >= LANDMARKS.length;
+  const complete = n >= TOTAL_STAMPS;
   const [passportOpen, setPassportOpen] = useState(false);
 
+  /* Arriving straight from the last stamp: go all the way to the generator
+     instead of making them find the button (it is the payoff, after all). */
+  useEffect(() => {
+    if (askedForPassport && complete) setPassportOpen(true);
+  }, [askedForPassport, complete]);
+
   return (
-    <section className="relative" aria-labelledby="passport-title">
+    <section id="passport" className="relative" aria-labelledby="passport-title">
       <h2 id="passport-title" className="sr-only">
         {t('journal.passport.srTitle')}
       </h2>
@@ -87,7 +96,7 @@ export default function Passport() {
             {!complete && (
               <div className="hidden text-right sm:block">
                 <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.14em] text-ink">
-                  {t('journal.passport.collected', { n })}
+                  {t('journal.passport.collected', { n, total: TOTAL_STAMPS })}
                 </p>
                 <p className="font-hand text-lg leading-[1.1] text-ink-soft">
                   {t('journal.passport.dareYou')}
@@ -307,8 +316,8 @@ function PassportDialog({
 /* ---------- circular n/14 passport badge ---------- */
 function PassportBadge({ n }: { n: number }) {
   const { t } = useLanguage();
-  const done = n >= 14;
-  const label = t('journal.passport.badgeAria', { n });
+  const done = n >= TOTAL_STAMPS;
+  const label = t('journal.passport.badgeAria', { n, total: TOTAL_STAMPS });
   return (
     <motion.div
       key={n}
@@ -324,7 +333,7 @@ function PassportBadge({ n }: { n: number }) {
       <span className="absolute inset-[5px] rounded-full border-2 border-dashed border-ink/15" />
       <span className="font-display text-base font-semibold leading-none text-ink">
         {n}
-        <span className="text-[0.65rem] text-ink-soft">/14</span>
+        <span className="text-[0.65rem] text-ink-soft">/{TOTAL_STAMPS}</span>
       </span>
     </motion.div>
   );
