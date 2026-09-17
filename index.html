@@ -11,6 +11,48 @@
       rel="stylesheet"
     />
     <title>Summer Town — Interactive Seaside Map</title>
+
+    <!-- Link cards. WeChat / iMessage / Slack read these from the *server*
+         response — they never run our JS — so they have to live in the shell.
+         /apple-album needs a different card and gets one injected by the Worker
+         (see api/boot.ts). Absolute URLs are required, so the production host
+         is spelled out; the Worker rewrites og:url / og:image to whatever host
+         actually served the request. -->
+    <meta
+      name="description"
+      content="A tiny seaside town you can wander: the interactive map, the windbell isle, the journal, and one apple a day."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Summer Town" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:url" content="https://summertown.summercommences.com/" />
+    <meta property="og:title" content="Summer Town — Interactive Seaside Map" />
+    <meta
+      property="og:description"
+      content="A tiny seaside town you can wander: the interactive map, the windbell isle, the journal, and one apple a day."
+    />
+    <meta
+      property="og:image"
+      content="https://summertown.summercommences.com/og/summer-town.png"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The Summer Town seashell mark" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Summer Town — Interactive Seaside Map"
+    />
+    <meta
+      name="twitter:description"
+      content="A tiny seaside town you can wander: the interactive map, the windbell isle, the journal, and one apple a day."
+    />
+    <meta
+      name="twitter:image"
+      content="https://summertown.summercommences.com/og/summer-town.png"
+    />
   </head>
   <body>
     <div id="root"></div>
