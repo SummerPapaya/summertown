@@ -1,9 +1,31 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+
+    <!-- Where is this visitor? Cloudflare's edge answers at /cdn-cgi/trace on
+         every proxied zone, so no Worker hop and no third-party call. Started
+         here rather than in the bundle so the lookup runs while the ~1MB of JS
+         is still downloading — it is almost always settled by the time React
+         mounts, which is what keeps the first paint from flashing the wrong
+         language. Resolves to '' anywhere the endpoint is absent (local dev, a
+         non-Cloudflare host, offline); see resolveInitialLang() in lib/i18n. -->
+    <script>
+      window.__stGeo = fetch('/cdn-cgi/trace', { cache: 'no-store' })
+        .then(function (r) {
+          return r.ok ? r.text() : '';
+        })
+        .then(function (body) {
+          var m = /^loc=(.+)$/m.exec(body);
+          return m ? m[1].trim() : '';
+        })
+        .catch(function () {
+          return '';
+        });
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
