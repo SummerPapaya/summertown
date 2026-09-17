@@ -94,57 +94,97 @@ interface DetailCardProps {
 }
 
 /**
- * Apple Cottage album button with a hover preview built from real
- * screenshots of the album (calendar + gallery). The two views take
- * turns while the pointer rests anywhere on the row.
+ * Link rows that reveal a preview of where they lead — real screenshots of
+ * the destination, cross-fading while the pointer rests anywhere on the row.
+ * Shared by the Apple Cottage album link and the Starlight Library link.
  */
-const ALBUM_PREVIEWS = [
+interface PreviewItem {
+  src: string;
+  labelKey: string;
+}
+
+const ALBUM_PREVIEWS: PreviewItem[] = [
   { src: '/preview-apple-album-calendar.jpg', labelKey: 'apple.calendar' },
   { src: '/preview-apple-album-gallery.jpg', labelKey: 'apple.gallery' },
-] as const;
+];
 
-function AppleAlbumRow({ variants }: { variants: Variants }) {
+const LIBRARY_PREVIEWS: PreviewItem[] = [
+  { src: '/preview-library-home.jpg', labelKey: 'detail.libraryHome' },
+  { src: '/preview-library-starlight.jpg', labelKey: 'detail.libraryStarlight' },
+];
+
+const PREVIEW_LINK_CLASS =
+  'group flex items-center gap-2.5 rounded-[20px] border-[3px] border-white bg-white/60 px-4 py-3 shadow-sticker transition-all duration-300 ease-squash hover:-translate-y-0.5 hover:bg-white/80';
+
+function HoverPreviewRow({
+  variants,
+  href,
+  external,
+  Icon,
+  labelKey,
+  previews,
+}: {
+  variants: Variants;
+  href: string;
+  external?: boolean;
+  Icon: LucideIcon;
+  labelKey: string;
+  previews: PreviewItem[];
+}) {
   const { t } = useLanguage();
   const [active, setActive] = useState(0);
   const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
     if (!hovered) return;
-    const id = window.setInterval(() => setActive((v) => (v + 1) % ALBUM_PREVIEWS.length), 2600);
+    const id = window.setInterval(
+      () => setActive((v) => (v + 1) % previews.length),
+      2600,
+    );
     return () => window.clearInterval(id);
-  }, [hovered]);
+  }, [hovered, previews.length]);
 
   const leave = () => {
     setHovered(false);
     setActive(0);
   };
 
+  const inner = (
+    <>
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-white bg-coral/30">
+        <Icon className="h-4 w-4 text-coral" />
+      </span>
+      <span className="font-display text-sm font-semibold text-ink transition-transform duration-300 ease-squash group-hover:scale-[1.02]">
+        {t(labelKey)}
+      </span>
+    </>
+  );
+
   return (
     <motion.div
       variants={variants}
-      className="group/album mt-5"
+      className="group/preview mt-5"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={leave}
     >
-      <Link
-        to="/apple-album"
-        className="group flex items-center gap-2.5 rounded-[20px] border-[3px] border-white bg-white/60 px-4 py-3 shadow-sticker transition-all duration-300 ease-squash hover:-translate-y-0.5 hover:bg-white/80"
-      >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-white bg-coral/30">
-          <Apple className="h-4 w-4 text-coral" />
-        </span>
-        <span className="font-display text-sm font-semibold text-ink transition-transform duration-300 ease-squash group-hover:scale-[1.02]">
-          {t('detail.appleAlbum')}
-        </span>
-      </Link>
-      {/* hover preview — real album screenshots, expands on desktop hover */}
-      <div className="max-h-0 overflow-hidden opacity-0 transition-all duration-300 ease-squash group-hover/album:max-h-[420px] group-hover/album:pt-3 group-hover/album:opacity-100">
+      {external ? (
+        <a href={href} target="_blank" rel="noreferrer" className={PREVIEW_LINK_CLASS}>
+          {inner}
+        </a>
+      ) : (
+        <Link to={href} className={PREVIEW_LINK_CLASS}>
+          {inner}
+        </Link>
+      )}
+
+      {/* hover preview — real screenshots, expands on desktop hover */}
+      <div className="max-h-0 overflow-hidden opacity-0 transition-all duration-300 ease-squash group-hover/preview:max-h-[420px] group-hover/preview:pt-3 group-hover/preview:opacity-100">
         <div className="relative mx-auto aspect-square w-full max-w-[360px] overflow-hidden rounded-[16px] border-[3px] border-white bg-cream shadow-sticker">
-          {ALBUM_PREVIEWS.map((p, i) => (
+          {previews.map((p, i) => (
             <img
               key={p.src}
               src={p.src}
-              alt={t('detail.appleAlbum')}
+              alt={t(labelKey)}
               className={`absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-700 ${
                 i === active ? 'opacity-100' : 'opacity-0'
               }`}
@@ -152,7 +192,7 @@ function AppleAlbumRow({ variants }: { variants: Variants }) {
             />
           ))}
           <span className="absolute bottom-2.5 left-1/2 -translate-x-1/2 rounded-full border-2 border-white bg-white/85 px-3 py-1 text-[0.62rem] font-extrabold uppercase tracking-[0.14em] text-ink-soft shadow-sticker backdrop-blur-sm">
-            {t(ALBUM_PREVIEWS[active].labelKey)}
+            {t(previews[active].labelKey)}
           </span>
         </div>
       </div>
@@ -384,25 +424,26 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
             )}
             {/* Starlight Library link (Tides' End Library) */}
             {lm.id === 'library' && (
-              <motion.div variants={item} className="mt-5">
-                <a
-                  href="https://shufang-galaxy.summercommences.com/"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="group flex items-center gap-2.5 rounded-[20px] border-[3px] border-white bg-white/60 px-4 py-3 shadow-sticker transition-all duration-300 ease-squash hover:-translate-y-0.5 hover:bg-white/80"
-                >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-white bg-coral/30">
-                    <Star className="h-4 w-4 text-coral" />
-                  </span>
-                  <span className="font-display text-sm font-semibold text-ink transition-transform duration-300 ease-squash group-hover:scale-[1.02]">
-                    {t('detail.starlightLibrary')}
-                  </span>
-                </a>
-              </motion.div>
+              <HoverPreviewRow
+                variants={item}
+                href="https://shufang-galaxy.summercommences.com/"
+                external
+                Icon={Star}
+                labelKey="detail.starlightLibrary"
+                previews={LIBRARY_PREVIEWS}
+              />
             )}
 
             {/* An Apple A Day album link (Apple Cottage) */}
-            {lm.id === 'apple-cottage' && <AppleAlbumRow variants={item} />}
+            {lm.id === 'apple-cottage' && (
+              <HoverPreviewRow
+                variants={item}
+                href="/apple-album"
+                Icon={Apple}
+                labelKey="detail.appleAlbum"
+                previews={ALBUM_PREVIEWS}
+              />
+            )}
 
             {/* footer row */}
             <motion.div variants={item} className="mt-6 flex flex-wrap items-center gap-3">

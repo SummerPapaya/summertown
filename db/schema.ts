@@ -163,6 +163,38 @@ export const applePhotos = sqliteTable(
 export type ApplePhoto = typeof applePhotos.$inferSelect;
 export type InsertApplePhoto = typeof applePhotos.$inferInsert;
 
+/* Apple photo likes — one row per (photo, device, UTC day). The unique
+ * index is what enforces the rule the album promises: a single device may
+ * give a photo at most one like per day. A repeat attempt hits the
+ * constraint and is reported back as "already liked" instead of inflating
+ * the tally. `device` is a client-generated UUID kept in localStorage
+ * (`st-device`); `ip` rides along for abuse review only. */
+
+export const appleLikes = sqliteTable(
+  "apple_likes",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    photoId: integer("photo_id").notNull(),
+    device: text("device").notNull(),
+    day: text("day").notNull(), // YYYY-MM-DD, UTC
+    ip: text("ip"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (t) => [
+    uniqueIndex("apple_likes_photo_device_day_unique").on(
+      t.photoId,
+      t.device,
+      t.day,
+    ),
+    index("apple_likes_photo_idx").on(t.photoId),
+  ],
+);
+
+export type AppleLike = typeof appleLikes.$inferSelect;
+export type InsertAppleLike = typeof appleLikes.$inferInsert;
+
 /* Tiny key/value store for runtime-mutable config — currently used to keep
  * refreshed 即刻 (Jike) tokens, since a Worker cannot rewrite its own
  * secrets. Absent rows simply fall back to the bound secret. */

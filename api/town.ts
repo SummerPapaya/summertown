@@ -1,9 +1,17 @@
 import { z } from "zod";
-import { desc, eq, count } from "drizzle-orm";
+import { and, desc, eq, count } from "drizzle-orm";
 import { createRouter, publicQuery, writeProcedure } from "./middleware";
 import { getDb } from "./queries/connection";
-import { applePhotos, footprints, newsletterSubs, postcards, wishes } from "@db/schema";
+import {
+  appleLikes,
+  applePhotos,
+  footprints,
+  newsletterSubs,
+  postcards,
+  wishes,
+} from "@db/schema";
 import { isAdOrSuspicious } from "./lib/moderation";
+import { rateLimit } from "./lib/ratelimit";
 import { guardAgainstSpam } from "./middleware";
 
 const hexColor = z
@@ -222,6 +230,70 @@ export const townRouter = createRouter({
       .from(applePhotos)
       .orderBy(desc(applePhotos.date));
   }),
+
+  /* Like tallies per photo, plus whether *this* device has already liked
+   * today. Kept separate from listApplePhotos so the album payload stays lean
+   * and the counts can refresh on their own. */
+  listAppleLikes: publicQuery
+    .input(
+      z.object({ deviceId: z.string().min(8).max(80).optional() }).nullish(),
+    )
+    .query(async ({ input, ctx }) => {
+      const db = getDb(ctx.env);
+      const rows = await db
+        .select({ photoId: appleLikes.photoId, value: count() })
+        .from(appleLikes)
+        .groupBy(appleLikes.photoId);
+      const counts: Record<string, number> = {};
+      for (const r of rows) counts[String(r.photoId)] = r.value;
+
+      let liked: number[] = [];
+      if (input?.deviceId) {
+        const day = new Date().toISOString().slice(0, 10);
+        const mine = await db
+          .select({ photoId: appleLikes.photoId })
+          .from(appleLikes)
+          .where(
+            and(eq(appleLikes.device, input.deviceId), eq(appleLikes.day, day)),
+          );
+        liked = mine.map((m) => m.photoId);
+      }
+      return { counts, liked };
+    }),
+
+  /* One like per photo, per device, per UTC day — the unique index enforces
+   * it. A duplicate insert is caught and reported as `liked: false` so the
+   * client settles on the real total instead of double-counting. */
+  likeApple: publicQuery
+    .input(
+      z.object({
+        photoId: z.number().int().positive(),
+        deviceId: z.string().min(8).max(80),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb(ctx.env);
+      // The daily rule is per device; this per-IP gate just stops a script
+      // from racing through freshly minted device ids.
+      await rateLimit(ctx.env, `like:${ctx.clientIp}`, 90, 60_000);
+      const day = new Date().toISOString().slice(0, 10);
+      let liked = true;
+      try {
+        await db.insert(appleLikes).values({
+          photoId: input.photoId,
+          device: input.deviceId,
+          day,
+          ip: ctx.clientIp,
+        });
+      } catch {
+        liked = false; // already liked today — the unique index said no
+      }
+      const [row] = await db
+        .select({ value: count() })
+        .from(appleLikes)
+        .where(eq(appleLikes.photoId, input.photoId));
+      return { liked, count: row?.value ?? 0 };
+    }),
 
   getFootprints: publicQuery.query(async ({ ctx }) => {
     const count = await getDb(ctx.env).$count(footprints);

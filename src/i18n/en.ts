@@ -248,6 +248,8 @@ export const en = {
     townCalendar: 'Town calendar — pinned notices →',
     postcardWall: 'Postcard wall — leave a note →',
     starlightLibrary: 'A Study of One\'s Own · Starlight Library →',
+    libraryHome: 'A Study of One\'s Own',
+    libraryStarlight: 'Starlight Library',
   },
   home: {
     fieldNotes: {
@@ -675,6 +677,11 @@ export const en = {
     emptyMonth: 'no apples picked yet this month… the orchard is still dreaming 🍎',
     emptyGallery: 'no apples picked yet — the basket is waiting!',
     shuffleHint: 'go on — shuffle the polaroids around! 📌',
+    like: 'Like',
+    liked: 'Liked',
+    likeAria: 'Like this apple',
+    likeError: "couldn't save your like — give it another go",
+    likedToday: "you've already liked this one today, come back tomorrow 🍎",
     liveBadge: '● live',
     defaultDescription: 'an apple a day!',
     photoAlt: 'apple of the day',

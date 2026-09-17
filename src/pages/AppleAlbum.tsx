@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarDays, ChevronLeft, ChevronRight, Images, X } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Heart, Images, X } from 'lucide-react';
 import { Link } from 'react-router';
+import { toast } from 'sonner';
 import { trpc } from '@/providers/trpc';
 import { prettyDate, seededRandom } from '@/lib/apple';
+import { getDeviceId } from '@/lib/deviceId';
 import { useLanguage } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
@@ -57,10 +59,122 @@ function todayString(): string {
 }
 
 /* ------------------------------------------------------------------ */
+/* Likes                                                               */
+/* ------------------------------------------------------------------ */
+
+/** What the like button needs from the page. Kept as one object so the
+ * calendar, the polaroid board and the zoom modal all render the same
+ * state without each owning a copy. */
+export interface LikeApi {
+  isLiked: (photoId: number) => boolean;
+  countOf: (photoId: number) => number;
+  isPending: (photoId: number) => boolean;
+  like: (photoId: number) => void;
+}
+
+/** Three little hearts that drift up and fade — fired the moment a like
+ * lands, echoing the sticker/handmade mood of the rest of the town. */
+function HeartBurst() {
+  return (
+    <span
+      className="pointer-events-none absolute inset-0 flex items-center justify-center"
+      aria-hidden
+    >
+      {[-16, 0, 16].map((dx, i) => (
+        <motion.span
+          key={i}
+          initial={{ opacity: 0.95, y: 2, x: 0, scale: 0.5 }}
+          animate={{ opacity: 0, y: -30 - i * 6, x: dx, scale: 1.2 }}
+          transition={{ duration: 0.85, delay: i * 0.07, ease: 'easeOut' }}
+          className="absolute"
+        >
+          <Heart className="h-3.5 w-3.5" style={{ fill: APPLE_RED, color: APPLE_RED }} />
+        </motion.span>
+      ))}
+    </span>
+  );
+}
+
+function LikeButton({
+  photoId,
+  api,
+  size = 'sm',
+}: {
+  photoId: number;
+  api: LikeApi;
+  size?: 'sm' | 'md';
+}) {
+  const { t } = useLanguage();
+  const liked = api.isLiked(photoId);
+  const count = api.countOf(photoId);
+  const pending = api.isPending(photoId);
+  /* keyed so each tap replays the little burst animation */
+  const [burst, setBurst] = useState(0);
+
+  return (
+    <motion.button
+      type="button"
+      /* the polaroid is draggable — keep the tap from starting a drag or
+         bubbling up to the photo's tap-to-open handler */
+      onPointerDownCapture={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (liked || pending) return;
+        setBurst((n) => n + 1);
+        api.like(photoId);
+      }}
+      disabled={liked || pending}
+      whileTap={{ scale: 0.88 }}
+      aria-pressed={liked}
+      aria-label={t('apple.likeAria')}
+      title={liked ? t('apple.likedToday') : t('apple.like')}
+      className={cn(
+        'relative inline-flex items-center gap-1 rounded-full border-[2.5px] border-white shadow-sticker transition-all duration-300 ease-squash',
+        size === 'sm' ? 'px-2.5 py-1' : 'px-3.5 py-2',
+        liked
+          ? 'bg-[#E8563F] text-white'
+          : 'bg-white/85 text-ink hover:-translate-y-0.5 hover:bg-white',
+      )}
+    >
+      <motion.span
+        key={liked ? 'on' : 'off'}
+        initial={{ scale: liked ? 0.4 : 1 }}
+        animate={{ scale: 1 }}
+        transition={{ type: 'spring', stiffness: 460, damping: 15 }}
+        className="flex"
+      >
+        <Heart className={cn(size === 'sm' ? 'h-4 w-4' : 'h-5 w-5', liked && 'fill-current')} />
+      </motion.span>
+      <motion.span
+        key={count}
+        initial={{ y: -6, opacity: 0.4 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 18 }}
+        className={cn(
+          'font-display font-bold tabular-nums',
+          size === 'sm' ? 'text-xs' : 'text-sm',
+        )}
+      >
+        {count}
+      </motion.span>
+      {burst > 0 && <HeartBurst key={burst} />}
+    </motion.button>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Zoom modal                                                          */
 /* ------------------------------------------------------------------ */
 
-function ZoomModal({ photo, onClose }: { photo: ApplePhotoData; onClose: () => void }) {
+function ZoomModal({
+  photo,
+  onClose,
+  likeApi,
+}: {
+  photo: ApplePhotoData;
+  onClose: () => void;
+  likeApi: LikeApi;
+}) {
   const { t } = useLanguage();
   const fmt = usePrettyDate();
   return (
@@ -118,6 +232,9 @@ function ZoomModal({ photo, onClose }: { photo: ApplePhotoData; onClose: () => v
         <p className="font-display mt-1 text-center text-sm font-semibold" style={{ color: APPLE_RED }}>
           {fmt(photo.date)}
         </p>
+        <div className="mt-3 flex justify-center">
+          <LikeButton photoId={photo.id} api={likeApi} size="md" />
+        </div>
       </motion.div>
     </motion.div>
   );
@@ -206,9 +323,11 @@ function MonthNav({
 function CalendarMode({
   photos,
   onOpen,
+  likeApi,
 }: {
   photos: ApplePhotoData[];
   onOpen: (p: ApplePhotoData) => void;
+  likeApi: LikeApi;
 }) {
   const { t } = useLanguage();
   const now = new Date();
@@ -295,6 +414,16 @@ function CalendarMode({
                     className="aspect-square w-full rounded-[2px] object-cover"
                     loading="lazy"
                   />
+                  {/* read-only tally on the date card — tap to open and like */}
+                  {likeApi.countOf(photo.id) > 0 && (
+                    <span
+                      className="pointer-events-none absolute -bottom-1.5 left-1/2 inline-flex -translate-x-1/2 items-center gap-0.5 rounded-full border-2 border-white bg-white/90 px-1.5 py-px text-[9px] font-extrabold tabular-nums shadow-sm"
+                      style={{ color: APPLE_RED }}
+                    >
+                      <Heart className="h-2.5 w-2.5" style={{ fill: APPLE_RED, color: APPLE_RED }} />
+                      {likeApi.countOf(photo.id)}
+                    </span>
+                  )}
                 </motion.button>
               ) : (
                 <span className="flex flex-1 items-center text-xl opacity-20 grayscale sm:text-2xl">
@@ -323,10 +452,12 @@ function GalleryPolaroid({
   photo,
   onOpen,
   boardRef,
+  likeApi,
 }: {
   photo: ApplePhotoData;
   onOpen: (p: ApplePhotoData) => void;
   boardRef: React.RefObject<HTMLDivElement | null>;
+  likeApi: LikeApi;
 }) {
   const { t } = useLanguage();
   const fmt = usePrettyDate();
@@ -378,6 +509,11 @@ function GalleryPolaroid({
           </p>
           <p className="font-hand text-center text-sm text-ink-soft">{fmt(photo.date)}</p>
         </div>
+        {/* like pill — kept outside the pointer-events-none wrapper so it is
+            actually tappable, and isolated from the drag / tap-to-open gesture */}
+        <div className="mt-1.5 flex justify-center">
+          <LikeButton photoId={photo.id} api={likeApi} />
+        </div>
       </motion.div>
     </div>
   );
@@ -386,9 +522,11 @@ function GalleryPolaroid({
 function GalleryMode({
   photos,
   onOpen,
+  likeApi,
 }: {
   photos: ApplePhotoData[];
   onOpen: (p: ApplePhotoData) => void;
+  likeApi: LikeApi;
 }) {
   const { t } = useLanguage();
   const boardRef = useRef<HTMLDivElement>(null);
@@ -451,7 +589,7 @@ function GalleryMode({
       </p>
       <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
         {shown.map((p) => (
-          <GalleryPolaroid key={p.id} photo={p} onOpen={onOpen} boardRef={boardRef} />
+          <GalleryPolaroid key={p.id} photo={p} onOpen={onOpen} boardRef={boardRef} likeApi={likeApi} />
         ))}
       </div>
     </div>
@@ -500,6 +638,70 @@ export default function AppleAlbum() {
     refetchOnWindowFocus: false,
   });
   const photos = (photosQuery.data ?? []) as ApplePhotoData[];
+
+  /* ---- likes --------------------------------------------------------- */
+  const deviceId = useMemo(() => getDeviceId(), []);
+  const likesQuery = trpc.town.listAppleLikes.useQuery(
+    { deviceId },
+    { retry: 1, refetchOnWindowFocus: false },
+  );
+  const likeMutation = trpc.town.likeApple.useMutation();
+
+  const serverCounts = likesQuery.data?.counts;
+  const serverLiked = useMemo(
+    () => new Set(likesQuery.data?.liked ?? []),
+    [likesQuery.data],
+  );
+
+  /* Optimistic overlay: the heart fills the instant you tap, then the
+   * refetched server tally becomes the source of truth. The overlay sticks
+   * around so the heart does not flicker back while that fetch is in flight. */
+  const [bump, setBump] = useState<Record<number, number>>({});
+  const [likedNow, setLikedNow] = useState<number[]>([]);
+  const [liking, setLiking] = useState<number[]>([]);
+
+  const like = (photoId: number) => {
+    if (
+      serverLiked.has(photoId) ||
+      likedNow.includes(photoId) ||
+      liking.includes(photoId)
+    ) {
+      return;
+    }
+    setBump((b) => ({ ...b, [photoId]: (b[photoId] ?? 0) + 1 }));
+    setLikedNow((l) => [...l, photoId]);
+    setLiking((p) => [...p, photoId]);
+    likeMutation.mutate(
+      { photoId, deviceId },
+      {
+        onSuccess: () => {
+          setBump((b) => {
+            const next = { ...b };
+            delete next[photoId];
+            return next;
+          });
+          void likesQuery.refetch();
+        },
+        onError: () => {
+          setBump((b) => {
+            const next = { ...b };
+            delete next[photoId];
+            return next;
+          });
+          setLikedNow((l) => l.filter((v) => v !== photoId));
+          toast(t('apple.likeError'));
+        },
+        onSettled: () => setLiking((p) => p.filter((v) => v !== photoId)),
+      },
+    );
+  };
+
+  const likeApi: LikeApi = {
+    isLiked: (id) => serverLiked.has(id) || likedNow.includes(id),
+    countOf: (id) => (serverCounts?.[String(id)] ?? 0) + (bump[id] ?? 0),
+    isPending: (id) => liking.includes(id),
+    like,
+  };
 
   return (
     <div
@@ -570,13 +772,15 @@ export default function AppleAlbum() {
           <p className="font-hand mt-1 text-2xl text-ink-soft">{t('apple.basketBody')}</p>
         </div>
       ) : mode === 'calendar' ? (
-        <CalendarMode photos={photos} onOpen={setZoomed} />
+        <CalendarMode photos={photos} onOpen={setZoomed} likeApi={likeApi} />
       ) : (
-        <GalleryMode photos={photos} onOpen={setZoomed} />
+        <GalleryMode photos={photos} onOpen={setZoomed} likeApi={likeApi} />
       )}
 
       <AnimatePresence>
-        {zoomed && <ZoomModal photo={zoomed} onClose={() => setZoomed(null)} />}
+        {zoomed && (
+          <ZoomModal photo={zoomed} onClose={() => setZoomed(null)} likeApi={likeApi} />
+        )}
       </AnimatePresence>
     </div>
   );

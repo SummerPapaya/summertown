@@ -157,7 +157,7 @@ function HeroOverlay({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -60, opacity: 0, transition: { duration: 0.35, delay: 0.05 } }}
             transition={{ delay: 1.55, duration: 0.7, ease: [0.22, 1.2, 0.36, 1] }}
-            className="mt-5 max-w-xl px-6 text-center text-lg font-semibold text-ink-soft"
+            className="text-halo mt-5 max-w-xl px-6 text-center text-xl font-bold text-ink"
           >
             {t('hero.subtitle')}
           </motion.p>

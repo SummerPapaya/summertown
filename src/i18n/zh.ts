@@ -134,7 +134,7 @@ export const zh: DeepL10n<Messages> = {
       facts: ['一直开到星星来打卡', '逾期费：一枚贝壳', '月亮和星空专区在顶楼，梯子已备好'],
     },
     designLab: {
-      name: '纸船设计所',
+      name: '纸船实验室',
       chip: '手作',
       whisper: '47 号原型浮起来啦！',
       tagline: '镇上的风筝、海报和小船，都在这儿出生。',
@@ -200,6 +200,8 @@ export const zh: DeepL10n<Messages> = {
     townCalendar: '小镇日历 · 看看布告 →',
     postcardWall: '明信片墙 · 留一句话 →',
     starlightLibrary: '一个人的书房 · 星空图书馆 →',
+    libraryHome: '一个人的书房',
+    libraryStarlight: '星空图书馆',
   },
   home: {
     fieldNotes: {
@@ -608,6 +610,11 @@ export const zh: DeepL10n<Messages> = {
     emptyMonth: '这个月还没摘苹果……果园还在做梦 🍎',
     emptyGallery: '还没摘到苹果——篮子等着呢！',
     shuffleHint: '来吧——把拍立得们拖拖看！📌',
+    like: '点赞',
+    liked: '已赞',
+    likeAria: '给这颗苹果点赞',
+    likeError: '点赞没成功，再试一次吧',
+    likedToday: '今天已经赞过这颗苹果啦，明天再来 🍎',
     liveBadge: '● 会动',
     defaultDescription: '一天一苹果！',
     photoAlt: '今日苹果',

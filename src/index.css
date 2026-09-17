@@ -215,6 +215,24 @@
       -4px 0 0 #fff,
       4px 0 0 #fff;
   }
+
+  /* Lighter sibling of `.text-outline` for smaller copy that still sits on
+     the illustrated map (hero slogan). A 2px white ring plus a soft white
+     glow keeps it legible over mid-tone artwork without the sticker weight
+     of the display title. */
+  .text-halo {
+    text-shadow:
+      0 2px 0 #fff,
+      2px 0 0 #fff,
+      0 -2px 0 #fff,
+      -2px 0 0 #fff,
+      2px 2px 0 #fff,
+      -2px -2px 0 #fff,
+      2px -2px 0 #fff,
+      -2px 2px 0 #fff,
+      0 0 10px rgba(255, 255, 255, 0.9),
+      0 0 20px rgba(255, 255, 255, 0.6);
+  }
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
