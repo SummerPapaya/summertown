@@ -8,6 +8,7 @@ import {
 } from 'react';
 import type { ReactNode } from 'react';
 import { LANDMARKS } from './landmarks';
+import { setOcean } from './sound';
 
 export type TimeOfDay = 'day' | 'golden' | 'starlight';
 
@@ -90,6 +91,13 @@ export function TownProvider({ children }: { children: ReactNode }) {
     } catch {
       /* ignore */
     }
+  }, [soundOn]);
+
+  /* The shore is the site's background bed: off until they ask for it, then
+     running under everything. Same switch as the chimes — one thing to turn
+     off. It is a no-op while sound is off, so no AudioContext is created. */
+  useEffect(() => {
+    setOcean(soundOn);
   }, [soundOn]);
 
   useEffect(() => {

@@ -22,8 +22,8 @@ export const en = {
       golden: 'Golden hour',
       starlight: 'Starlight',
     },
-    soundOn: 'Sound on',
-    soundOff: 'Sound off',
+    soundOn: 'Sound on (waves)',
+    soundOff: 'Sound off (waves)',
     language: 'Language / 语言',
   },
   preloader: {

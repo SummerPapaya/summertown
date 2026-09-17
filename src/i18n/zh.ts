@@ -26,8 +26,8 @@ export const zh: DeepL10n<Messages> = {
       golden: '黄昏',
       starlight: '星夜',
     },
-    soundOn: '开声音',
-    soundOff: '关声音',
+    soundOn: '开声音（海浪）',
+    soundOff: '关声音（海浪）',
     language: 'Language / 语言',
   },
   preloader: {
