@@ -36,12 +36,23 @@ async function bumpCounter(
   windowMs: number,
 ): Promise<RateLimitDecision> {
   void env; // reserved for future D1/KV-backed limits
+
+  /* The Cache API only exists on Cloudflare. Running the Worker on plain Node
+   * (the `vite` dev server via @hono/vite-dev-server) leaves `caches`
+   * undefined, which would 500 every write endpoint locally. Rate limiting is
+   * an edge-side safety net — the D1 unique indexes are the real enforcement —
+   * so degrade to "allowed" rather than failing the request. */
+  const cacheStorage = (globalThis as { caches?: CacheStorage }).caches;
+  if (!cacheStorage) {
+    return { allowed: true, remaining: limit, resetAtMs: Date.now() + windowMs };
+  }
+
   // Cache keys need to be valid URLs — wrap the bucket name with a stable
   // prefix; Cloudflare limits to <512 chars & ascii printable.
   const url = `https://ratelimit.local/${encodeURIComponent(bucket)}/${Math.floor(
     Date.now() / windowMs,
   )}`;
-  const cache = caches.open("ratelimit");
+  const cache = cacheStorage.open("ratelimit");
   const existing = (await (await cache).match(url))?.clone();
   const now = Date.now();
   const windowStart = Math.floor(now / windowMs) * windowMs;
