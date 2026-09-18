@@ -756,6 +756,14 @@ export default function AppleAlbum() {
   });
   const photos = (photosQuery.data ?? []) as ApplePhotoData[];
 
+  /* The counter counts days, not photos — one apple per day is the whole
+   * idea, and a hand-uploaded extra for a date that already has one should
+   * not inflate it. */
+  const daysCollected = useMemo(
+    () => new Set(photos.map((p) => p.date)).size,
+    [photos],
+  );
+
   /* ---- likes --------------------------------------------------------- */
   const deviceId = useMemo(() => getDeviceId(), []);
   const likesQuery = trpc.town.listAppleLikes.useQuery(
@@ -850,6 +858,16 @@ export default function AppleAlbum() {
         <p className="font-hand mt-2 text-xl font-normal text-ink-soft sm:text-2xl">
           {t('apple.subtitle')}
         </p>
+
+        {/* collected-days sticker — sits between the subtitle and the mode
+            toggle, in the same white-pill language as the rest of the page */}
+        {daysCollected > 0 && (
+          <p className="mt-5 flex justify-center">
+            <span className="font-hand inline-flex items-center rounded-full border-[3px] border-white bg-white/90 px-5 py-1.5 text-xl text-ink shadow-md sm:text-2xl">
+              {t('apple.collectedCount', { n: daysCollected })}
+            </span>
+          </p>
+        )}
 
         {/* mode toggle */}
         <div className="mt-6 inline-flex gap-2 rounded-full border-[3px] border-white bg-white/50 p-1.5 shadow-md">

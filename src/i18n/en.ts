@@ -653,6 +653,7 @@ export const en = {
     backToTown: '← Back to Summer Town',
     title: '🍎 An Apple A Day',
     subtitle: 'one little apple, every single day, from the Summer Town orchard',
+    collectedCount: 'collected {n} apples so far',
     calendar: 'Calendar',
     gallery: 'Gallery',
     prevMonth: 'Previous month',

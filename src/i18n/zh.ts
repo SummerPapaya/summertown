@@ -599,6 +599,7 @@ export const zh: DeepL10n<Messages> = {
     backToTown: '「← 回到夏天镇」',
     title: '🍎 一天一苹果',
     subtitle: '每天一颗小苹果，来自夏天镇的果园',
+    collectedCount: '目前已收集 {n} 颗苹果',
     calendar: '日历',
     gallery: '照片墙',
     prevMonth: '上个月',
