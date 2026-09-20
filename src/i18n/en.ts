@@ -186,7 +186,7 @@ export const en = {
       chip: 'Magic',
       whisper: 'the stairs decide where you go',
       tagline: 'Stairs to nowhere, doors to somewhere.',
-      lore: 'A tilted tower of mismatched rooms held together by habit and mild sorcery. The floating front door opens onto a different floor each visit; the resident witch, Xiami, insists this is a feature.',
+      lore: 'A tilted tower of mismatched rooms held together by habit and mild sorcery. The floating front door opens onto a different floor each visit; the resident witch, Shiami, insists this is a feature.',
       facts: [
         'Tours: whenever the door agrees',
         'Deputy: Umbra the cat',

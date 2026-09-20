@@ -7,7 +7,24 @@
     <meta name="theme-color" content="#edece5" />
     <meta name="description" content="Summer's Magic Room: an interactive, seasonal Three.js reading room." />
     <title>Summer's Magic Room · 大夏的魔法书屋</title>
-    <script type="module" crossorigin src="./assets/daxia-v2-Bbv-CcsQ.js"></script>
+    <!-- Which language to open in. Cloudflare's edge answers /cdn-cgi/trace on
+         every proxied zone, so the country costs no extra request and no
+         third-party hop. Started here, before the bundle, so the answer is
+         usually in hand by the time React mounts; see i18n.ts. -->
+    <script>
+      window.__stGeo = fetch('/cdn-cgi/trace', { cache: 'no-store' })
+        .then(function (r) {
+          return r.ok ? r.text() : '';
+        })
+        .then(function (body) {
+          var m = /^loc=(.+)$/m.exec(body);
+          return m ? m[1].trim() : '';
+        })
+        .catch(function () {
+          return '';
+        });
+    </script>
+    <script type="module" crossorigin src="./assets/daxia-v2-B2Z2nGzJ.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/daxia-v2-CcrIWB-J.css">
   </head>
   <body>
