@@ -252,6 +252,7 @@ export const en = {
     townCalendar: 'Town calendar — pinned notices →',
     postcardWall: 'Postcard wall — leave a note →',
     starlightLibrary: 'A Study of One\'s Own · Starlight Library →',
+    magicRoom: 'Come in for a spell →',
     libraryHome: 'A Study of One\'s Own',
     libraryStarlight: 'Starlight Library',
   },

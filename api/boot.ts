@@ -104,6 +104,14 @@ function withCard(html: string, card: LinkCard, pathname: string, origin: string
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${title}</title>`);
 }
 
+/* The Magic Room is its own static sub-app inside the assets directory at
+ * `magic-room/`. The bare path matches no file, and the assets layer would
+ * hand it to this Worker, where the SPA fallback below would render the town
+ * map instead of the room — redirect it to the sub-app's index first. The
+ * `_redirects` file does the same job at the assets layer; this is the
+ * belt-and-braces copy. */
+app.get("/magic-room", (c) => c.redirect("/magic-room/", 301));
+
 /* Static assets — produced by `vite build` into `dist/public/`. Requests that
  * match a real file (`/`, `/assets/*`, `/logo.svg`, …) are served by the
  * assets layer *before* this Worker runs, so this handler only sees paths with

@@ -204,6 +204,7 @@ export const zh: DeepL10n<Messages> = {
     townCalendar: '小镇日历 · 看看布告 →',
     postcardWall: '明信片墙 · 留一句话 →',
     starlightLibrary: '一个人的书房 · 星空图书馆 →',
+    magicRoom: '进来坐一会儿吧 →',
     libraryHome: '一个人的书房',
     libraryStarlight: '星空图书馆',
   },

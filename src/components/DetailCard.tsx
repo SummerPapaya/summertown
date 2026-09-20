@@ -464,6 +464,26 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
               />
             )}
 
+            {/* Magic Room — the witch's own Three.js reading room, a static
+                sub-app at /magic-room/. A plain <a>, not <Link>: React Router
+                has no route there, so client-side navigation would land on
+                the SPA fallback instead of the room. */}
+            {lm.id === 'magic-house' && (
+              <motion.div variants={item} className="mt-5">
+                <a
+                  href="/magic-room"
+                  className="group flex items-center gap-2.5 rounded-[20px] border-[3px] border-white bg-white/60 px-4 py-3 shadow-sticker transition-all duration-300 ease-squash hover:-translate-y-0.5 hover:bg-white/80"
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-white bg-coral/30">
+                    <Wand2 className="h-4 w-4 text-coral" />
+                  </span>
+                  <span className="font-display text-sm font-semibold text-ink transition-transform duration-300 ease-squash group-hover:scale-[1.02]">
+                    {t('detail.magicRoom')}
+                  </span>
+                </a>
+              </motion.div>
+            )}
+
             {/* footer row */}
             <motion.div variants={item} className="mt-6 flex flex-wrap items-center gap-3">
               <button
