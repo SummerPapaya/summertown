@@ -202,7 +202,7 @@ function HoverPreviewRow({
 
 export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCardProps) {
   const { stamps, collectStamp } = useTown();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const navigate = useNavigate();
   const name = t(lm.nameKey);
   const [justStamped, setJustStamped] = useState(false);
@@ -471,7 +471,7 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
             {lm.id === 'magic-house' && (
               <motion.div variants={item} className="mt-5">
                 <a
-                  href="/magic-room"
+                  href={`/magic-room?lang=${lang}`}
                   className="group flex items-center gap-2.5 rounded-[20px] border-[3px] border-white bg-white/60 px-4 py-3 shadow-sticker transition-all duration-300 ease-squash hover:-translate-y-0.5 hover:bg-white/80"
                 >
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-white bg-coral/30">

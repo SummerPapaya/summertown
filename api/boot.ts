@@ -110,7 +110,9 @@ function withCard(html: string, card: LinkCard, pathname: string, origin: string
  * map instead of the room — redirect it to the sub-app's index first. The
  * `_redirects` file does the same job at the assets layer; this is the
  * belt-and-braces copy. */
-app.get("/magic-room", (c) => c.redirect("/magic-room/", 301));
+// Preserve any query string so the sub-app can pick up ?lang= (used by the
+// DetailCard entry to mirror the town's current language).
+app.get("/magic-room", (c) => c.redirect(`/magic-room/${new URL(c.req.url).search}`, 301));
 
 /* Static assets — produced by `vite build` into `dist/public/`. Requests that
  * match a real file (`/`, `/assets/*`, `/logo.svg`, …) are served by the
