@@ -26,6 +26,28 @@ interface PostcardData {
   createdAt: Date;
 }
 
+interface CommentData {
+  id: number;
+  photoId: number | null;
+  photoDate: string | null;
+  nickname: string;
+  body: string;
+  createdAt: Date;
+}
+
+interface AdminCommentData {
+  id: number;
+  parentId: number | null;
+  photoId: number | null;
+  photoDate: string | null;
+  nickname: string;
+  isAdmin: boolean;
+  email: string | null;
+  body: string;
+  status: string;
+  createdAt: Date;
+}
+
 interface SubData {
   id: number;
   email: string;
@@ -160,12 +182,13 @@ function ConfirmButton({
 /* Tabs                                                                 */
 /* ------------------------------------------------------------------ */
 
-type Tab = 'pending' | 'wishes' | 'postcards' | 'subscribers';
+type Tab = 'pending' | 'wishes' | 'postcards' | 'comments' | 'subscribers';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'pending', label: 'Pending' },
   { id: 'wishes', label: 'Wishes' },
   { id: 'postcards', label: 'Postcards' },
+  { id: 'comments', label: 'Album comments' },
   { id: 'subscribers', label: 'Subscribers' },
 ];
 
@@ -295,6 +318,8 @@ function PendingTab() {
   const rejectWish = trpc.admin.rejectWish.useMutation();
   const approvePostcard = trpc.admin.approvePostcard.useMutation();
   const rejectPostcard = trpc.admin.rejectPostcard.useMutation();
+  const approveComment = trpc.admin.approveAppleComment.useMutation();
+  const rejectComment = trpc.admin.rejectAppleComment.useMutation();
   const bulkApprove = trpc.admin.bulkApprove.useMutation();
   const clearPending = trpc.admin.clearPending.useMutation();
 
@@ -303,6 +328,7 @@ function PendingTab() {
 
   const allWishes = (listQuery.data?.wishes ?? []) as WishData[];
   const allPostcards = (listQuery.data?.postcards ?? []) as PostcardData[];
+  const allComments = (listQuery.data?.comments ?? []) as CommentData[];
 
   const q = search.trim().toLowerCase();
   const matches = (...fields: string[]) =>
@@ -321,6 +347,9 @@ function PendingTab() {
   );
   const pendingPostcards = sortRows(
     allPostcards.filter((p) => matches(p.message, p.signature, p.doodle)),
+  );
+  const pendingComments = sortRows(
+    allComments.filter((c) => matches(c.nickname, c.body, c.photoDate ?? '')),
   );
 
   async function act(
@@ -366,8 +395,9 @@ function PendingTab() {
     );
   }
 
-  const hasAny = allWishes.length + allPostcards.length > 0;
-  const hasVisible = pendingWishes.length + pendingPostcards.length > 0;
+  const hasAny = allWishes.length + allPostcards.length + allComments.length > 0;
+  const hasVisible =
+    pendingWishes.length + pendingPostcards.length + pendingComments.length > 0;
 
   if (!hasAny) {
     return (
@@ -517,9 +547,250 @@ function PendingTab() {
               ))}
             </ul>
           </section>
+
+          {/* Flagged album comments */}
+          <section>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-display text-xl font-semibold" style={{ color: POST_OFFICE_TEAL }}>
+                Flagged album comments
+                <span className="ml-2 rounded-full bg-[#3e8e8a1a] px-2.5 py-0.5 text-sm font-extrabold text-[#3E8E8A]">
+                  {pendingComments.length}
+                </span>
+              </h2>
+            </div>
+            {pendingComments.length === 0 ? (
+              <p className="font-hand text-xl text-ink-soft">no held comments right now</p>
+            ) : (
+              <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {pendingComments.map((c) => (
+                  <li key={c.id} className="sticker-card p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-hand text-xl leading-tight text-ink">{c.body}</p>
+                      {c.photoDate && (
+                        <span
+                          className="shrink-0 rounded-full bg-[#E8563F1a] px-2 py-0.5 text-xs font-extrabold text-[#E8563F]"
+                          title="photo mentioned"
+                        >
+                          🍎
+                        </span>
+                      )}
+                    </div>
+                    <p className="font-hand mt-1 text-lg text-ink-soft">
+                      — {c.nickname}
+                      {c.photoDate ? ` · ${c.photoDate}` : ''}
+                    </p>
+                    <p className="mt-1 text-xs font-bold text-ink-soft">
+                      {fmtDateTime(c.createdAt)}
+                    </p>
+                    <div className="mt-3 flex gap-2 border-t-2 border-dashed border-[#3e8e8a33] pt-3">
+                      <button
+                        onClick={() => void act(approveComment, c.id, 'Comment approved')}
+                        className="btn-primary flex-1 !px-3 !py-1.5 text-sm"
+                      >
+                        Approve
+                      </button>
+                      <ConfirmButton
+                        onConfirm={() => void act(rejectComment, c.id, 'Comment rejected')}
+                        label="Reject"
+                        confirmLabel="Sure?"
+                        tone="danger"
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </div>
       )}
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Album comments tab (guest book threads + official replies)           */
+/* ------------------------------------------------------------------ */
+
+function AppleCommentsTab() {
+  const listQuery = trpc.admin.listAppleComments.useQuery(undefined, { retry: false });
+  const replyMutation = trpc.admin.replyAppleComment.useMutation();
+  const deleteMutation = trpc.admin.deleteAppleComment.useMutation();
+
+  const rows = (listQuery.data ?? []) as AdminCommentData[];
+  const [replyTo, setReplyTo] = useState<number | null>(null);
+  const [draft, setDraft] = useState('');
+
+  /* Thread client-side: roots = no parent, replies grouped under them. */
+  const roots = rows.filter((r) => r.parentId === null);
+  const repliesByRoot = new Map<number, AdminCommentData[]>();
+  for (const r of rows) {
+    if (r.parentId === null) continue;
+    const list = repliesByRoot.get(r.parentId) ?? [];
+    list.push(r);
+    repliesByRoot.set(r.parentId, list);
+  }
+
+  async function reply(rootId: number) {
+    const body = draft.trim();
+    if (!body) {
+      toast.error('Write the reply first');
+      return;
+    }
+    try {
+      await replyMutation.mutateAsync({ parentId: rootId, body });
+      toast.success('Reply posted as 管理员');
+      setDraft('');
+      setReplyTo(null);
+      await listQuery.refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Reply failed');
+    }
+  }
+
+  async function remove(id: number) {
+    try {
+      await deleteMutation.mutateAsync({ id });
+      toast.success('Comment deleted');
+      await listQuery.refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Delete failed');
+    }
+  }
+
+  if (listQuery.isLoading) {
+    return <p className="font-hand py-16 text-center text-2xl text-ink-soft">leafing through the guest book…</p>;
+  }
+  if (roots.length === 0) {
+    return (
+      <div className="sticker-card p-10 text-center">
+        <div className="text-5xl">🍎</div>
+        <p className="font-hand mt-2 text-2xl text-ink-soft">no comments in the guest book yet</p>
+      </div>
+    );
+  }
+
+  return (
+    <ul className="space-y-5">
+      {roots.map((c) => {
+        const replies = (repliesByRoot.get(c.id) ?? []).sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        );
+        const isOpen = replyTo === c.id;
+        return (
+          <li key={c.id} className="sticker-card p-4">
+            <div className="flex flex-wrap items-baseline gap-x-2">
+              <span className="font-hand text-xl leading-tight text-ink">{c.nickname}</span>
+              {c.photoDate && (
+                <span
+                  className="rounded-full bg-[#E8563F1a] px-2 py-0.5 text-xs font-extrabold text-[#E8563F]"
+                  title="photo mentioned"
+                >
+                  🍎 {c.photoDate}
+                </span>
+              )}
+              {c.status !== 'approved' && (
+                <span className="rounded-full bg-[#854F0B1a] px-2 py-0.5 text-xs font-extrabold text-[#854F0B]">
+                  {c.status}
+                </span>
+              )}
+              <span className="text-xs font-bold text-ink-soft">{fmtDateTime(c.createdAt)}</span>
+            </div>
+            <p className="font-hand mt-1 whitespace-pre-line text-xl leading-snug text-ink">
+              {c.body}
+            </p>
+
+            {replies.length > 0 && (
+              <div className="mt-3 space-y-2 border-l-2 border-dashed border-[#3e8e8a33] pl-4">
+                {replies.map((r) => (
+                  <div key={r.id}>
+                    <div className="flex flex-wrap items-baseline gap-x-2">
+                      <span
+                        className={cn(
+                          'font-hand text-lg leading-tight',
+                          r.isAdmin ? 'text-[#E8563F]' : 'text-ink',
+                        )}
+                      >
+                        {r.isAdmin ? '管理员' : r.nickname}
+                      </span>
+                      {r.isAdmin && (
+                        <span className="rounded-full bg-[#E8563F1a] px-2 py-0.5 text-xs font-extrabold text-[#E8563F]">
+                          Admin
+                        </span>
+                      )}
+                      {r.status !== 'approved' && (
+                        <span className="rounded-full bg-[#854F0B1a] px-2 py-0.5 text-xs font-extrabold text-[#854F0B]">
+                          {r.status}
+                        </span>
+                      )}
+                      <span className="text-xs font-bold text-ink-soft">
+                        {fmtDateTime(r.createdAt)}
+                      </span>
+                      <ConfirmButton
+                        onConfirm={() => void remove(r.id)}
+                        label="Delete"
+                        confirmLabel="Sure?"
+                        tone="danger"
+                      />
+                    </div>
+                    <p className="font-hand mt-0.5 whitespace-pre-line text-lg leading-snug text-ink">
+                      {r.body}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t-2 border-dashed border-[#3e8e8a33] pt-3">
+              {isOpen ? (
+                <>
+                  <input
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    maxLength={500}
+                    placeholder="Reply as 管理员…"
+                    className="min-w-[200px] grow rounded-full border-[3px] border-white bg-cream px-4 py-2 font-bold text-ink shadow-inner outline-none focus:border-[#8fd4d1]"
+                  />
+                  <button
+                    onClick={() => void reply(c.id)}
+                    disabled={replyMutation.isPending}
+                    className="btn-primary !px-4 !py-2 text-sm disabled:opacity-60"
+                  >
+                    Post reply
+                  </button>
+                  <button
+                    onClick={() => {
+                      setReplyTo(null);
+                      setDraft('');
+                    }}
+                    className="btn-secondary !px-4 !py-2 text-sm"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      setDraft('');
+                      setReplyTo(c.id);
+                    }}
+                    className="btn-primary !px-4 !py-2 text-sm"
+                  >
+                    Reply as 管理员
+                  </button>
+                  <ConfirmButton
+                    onConfirm={() => void remove(c.id)}
+                    label="Delete comment"
+                    confirmLabel="Sure? deletes replies too"
+                    tone="danger"
+                  />
+                </>
+              )}
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -741,6 +1012,7 @@ export default function TownAdmin() {
       {tab === 'pending' && <PendingTab />}
       {tab === 'wishes' && <WishesTab />}
       {tab === 'postcards' && <PostcardsTab />}
+      {tab === 'comments' && <AppleCommentsTab />}
       {tab === 'subscribers' && <SubscribersTab />}
     </div>
   );

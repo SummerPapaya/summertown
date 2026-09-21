@@ -68,8 +68,24 @@ async function bumpCounter(
     return { allowed: 1 <= limit, remaining: Math.max(limit - 1, 0), resetAtMs };
   }
 
-  const data: { count: number } = await existing.json();
-  const next = data.count + 1;
+  /* A matched entry can legitimately carry an empty body (the local dev
+   * Cache API replays headers but not bytes, and a purged/partially-written
+   * entry behaves the same way). Parsing that with `.json()` throws and
+   * would turn *every* write into a 500, so treat an unreadable counter as
+   * a fresh window instead of failing the request. */
+  let current = 0;
+  try {
+    const raw = await existing.text();
+    if (raw) {
+      const parsed = JSON.parse(raw) as { count?: number };
+      if (typeof parsed.count === "number" && Number.isFinite(parsed.count)) {
+        current = parsed.count;
+      }
+    }
+  } catch {
+    current = 0;
+  }
+  const next = current + 1;
   const updated = new Response(JSON.stringify({ count: next }), {
     headers: {
       "Cache-Control": `public, max-age=${Math.ceil(windowMs / 1000)}`,

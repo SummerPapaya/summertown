@@ -3,7 +3,7 @@ import { desc, eq, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { createRouter, adminProcedure } from "./middleware";
 import { getDb } from "./queries/connection";
-import { applePhotos, newsletterSubs, postcards, wishes } from "@db/schema";
+import { appleComments, applePhotos, newsletterSubs, postcards, wishes } from "@db/schema";
 
 const dateString = z
   .string()
@@ -240,7 +240,7 @@ export const adminRouter = createRouter({
 
   listPending: adminProcedure.query(async ({ ctx }) => {
     const db = getDb(ctx.env);
-    const [pendingWishes, pendingPostcards] = await Promise.all([
+    const [pendingWishes, pendingPostcards, pendingComments] = await Promise.all([
       db
         .select({
           id: wishes.id,
@@ -264,8 +264,25 @@ export const adminRouter = createRouter({
         .from(postcards)
         .where(eq(postcards.status, "pending"))
         .orderBy(desc(postcards.createdAt)),
+      db
+        .select({
+          id: appleComments.id,
+          photoId: appleComments.photoId,
+          photoDate: appleComments.photoDate,
+          nickname: appleComments.nickname,
+          body: appleComments.body,
+          createdAt: appleComments.createdAt,
+          status: appleComments.status,
+        })
+        .from(appleComments)
+        .where(eq(appleComments.status, "pending"))
+        .orderBy(desc(appleComments.createdAt)),
     ]);
-    return { wishes: pendingWishes, postcards: pendingPostcards };
+    return {
+      wishes: pendingWishes,
+      postcards: pendingPostcards,
+      comments: pendingComments,
+    };
   }),
 
   approveWish: adminProcedure
@@ -308,6 +325,97 @@ export const adminRouter = createRouter({
       return { ok: true };
     }),
 
+  approveAppleComment: adminProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      await getDb(ctx.env)
+        .update(appleComments)
+        .set({ status: "approved" })
+        .where(eq(appleComments.id, input.id));
+      return { ok: true };
+    }),
+
+  rejectAppleComment: adminProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      await getDb(ctx.env)
+        .update(appleComments)
+        .set({ status: "rejected" })
+        .where(eq(appleComments.id, input.id));
+      return { ok: true };
+    }),
+
+  /* All comments, newest first — the admin tab threads them client-side.
+   * `email` is returned here (admin-only, token-gated) but never by the
+   * public endpoint. Capped at 200 rows. */
+  listAppleComments: adminProcedure.query(async ({ ctx }) => {
+    return getDb(ctx.env)
+      .select({
+        id: appleComments.id,
+        parentId: appleComments.parentId,
+        photoId: appleComments.photoId,
+        photoDate: appleComments.photoDate,
+        nickname: appleComments.nickname,
+        isAdmin: appleComments.isAdmin,
+        email: appleComments.email,
+        body: appleComments.body,
+        status: appleComments.status,
+        createdAt: appleComments.createdAt,
+      })
+      .from(appleComments)
+      .orderBy(desc(appleComments.createdAt), desc(appleComments.id))
+      .limit(200);
+  }),
+
+  /* Post an official reply as "管理员 / Admin": approved immediately, never
+   * rate-limited (the admin gate already proves who you are), and it must
+   * answer a live top-level comment. */
+  replyAppleComment: adminProcedure
+    .input(
+      z.object({
+        parentId: z.number().int().positive(),
+        body: z.string().trim().min(1).max(500),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb(ctx.env);
+      const parent = await db.query.appleComments.findFirst({
+        where: eq(appleComments.id, input.parentId),
+        columns: { id: true, parentId: true },
+      });
+      if (!parent || parent.parentId !== null) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Replies must answer a top-level comment.",
+        });
+      }
+      const [row] = await db
+        .insert(appleComments)
+        .values({
+          parentId: parent.id,
+          isAdmin: true,
+          nickname: "管理员",
+          body: input.body,
+          status: "approved",
+        })
+        .returning();
+      return { ok: true as const, id: row.id };
+    }),
+
+  deleteAppleComment: adminProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb(ctx.env);
+      /* Replies go with their root — otherwise they would linger as
+       * orphans no query can ever reach (roots have no parent; replies
+       * are only fetched under a live root). */
+      await db
+        .delete(appleComments)
+        .where(eq(appleComments.parentId, input.id));
+      await db.delete(appleComments).where(eq(appleComments.id, input.id));
+      return { ok: true };
+    }),
+
   bulkApprove: adminProcedure
     .input(
       z.object({
@@ -333,6 +441,10 @@ export const adminRouter = createRouter({
     await Promise.all([
       db.update(wishes).set({ status: "rejected" }).where(eq(wishes.status, "pending")),
       db.update(postcards).set({ status: "rejected" }).where(eq(postcards.status, "pending")),
+      db
+        .update(appleComments)
+        .set({ status: "rejected" })
+        .where(eq(appleComments.status, "pending")),
     ]);
     return { ok: true as const };
   }),

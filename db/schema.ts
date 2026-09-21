@@ -195,6 +195,54 @@ export const appleLikes = sqliteTable(
 export type AppleLike = typeof appleLikes.$inferSelect;
 export type InsertAppleLike = typeof appleLikes.$inferInsert;
 
+/* Apple photo comments — the guest book hanging under the album.
+ *
+ * Same contract as wishes/postcards: `status` gates public visibility
+ * ('approved' shows, 'pending' waits for /town-admin), `client_id` makes a
+ * retried submit idempotent. `email` is optional and deliberately never
+ * returned by any public endpoint — it exists only so the owner could reply
+ * one day.
+ *
+ * `photoId` is the photo the comment is about (nullable — general remarks
+ * are allowed). `photoDate` is stored alongside it as a denormalised copy:
+ * if the photo is ever deleted the comment still reads sensibly instead of
+ * pointing at a dangling id. */
+
+export const appleComments = sqliteTable(
+  "apple_comments",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    photoId: integer("photo_id"),
+    photoDate: text("photo_date"),
+    /** Replies: id of the top-level comment this answers. Replies always
+     * attach to a root (a reply-to-reply re-points to the root), so the
+     * thread stays two levels deep. Null = top-level comment. */
+    parentId: integer("parent_id"),
+    /** Set for replies posted from /town-admin — rendered with a special
+     * "管理员 / Admin" badge instead of a plain nickname. */
+    isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
+    nickname: text("nickname").notNull(),
+    email: text("email"),
+    body: text("body").notNull(),
+    /** 'approved' | 'pending' | 'rejected' */
+    status: text("status").notNull().default("approved"),
+    clientId: text("client_id"),
+    ip: text("ip"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (t) => [
+    index("apple_comments_status_created_idx").on(t.status, t.createdAt),
+    index("apple_comments_photo_idx").on(t.photoId),
+    index("apple_comments_parent_idx").on(t.parentId),
+    uniqueIndex("apple_comments_client_id_unique").on(t.clientId),
+  ],
+);
+
+export type AppleComment = typeof appleComments.$inferSelect;
+export type InsertAppleComment = typeof appleComments.$inferInsert;
+
 /* Tiny key/value store for runtime-mutable config — currently used to keep
  * refreshed 即刻 (Jike) tokens, since a Worker cannot rewrite its own
  * secrets. Absent rows simply fall back to the bound secret. */

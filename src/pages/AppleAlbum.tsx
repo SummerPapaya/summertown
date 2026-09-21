@@ -5,6 +5,7 @@ import { Link } from 'react-router';
 import { toast } from 'sonner';
 import { trpc } from '@/providers/trpc';
 import { prettyDate, seededRandom } from '@/lib/apple';
+import { CommentBoard } from '@/components/apple/CommentBoard';
 import { getDeviceId } from '@/lib/deviceId';
 import { useLanguage } from '@/lib/i18n';
 import { usePauseSmoothScroll } from '@/lib/smoothScroll';
@@ -184,10 +185,13 @@ function ZoomModal({
   photo,
   onClose,
   likeApi,
+  onMention,
 }: {
   photo: ApplePhotoData;
   onClose: () => void;
   likeApi: LikeApi;
+  /** Jump down to the guest book with this photo pre-selected. */
+  onMention?: (photoId: number) => void;
 }) {
   const { t } = useLanguage();
   const fmt = usePrettyDate();
@@ -348,8 +352,16 @@ function ZoomModal({
           >
             {fmt(photo.date)}
           </p>
-          <div className="flex justify-center">
+          <div className="flex items-center justify-center gap-2">
             <LikeButton photoId={photo.id} api={likeApi} size="md" />
+            {onMention && (
+              <button
+                onClick={() => onMention(photo.id)}
+                className="font-hand inline-flex items-center gap-1.5 rounded-full border-[3px] border-white bg-cream px-4 py-2 text-xl text-ink shadow-[0_5px_0_rgba(74,68,112,0.18)] transition-transform hover:-translate-y-0.5"
+              >
+                {t('apple.comments.mentionCta')}
+              </button>
+            )}
           </div>
         </div>
       </motion.div>
@@ -736,13 +748,37 @@ html.apple-embed main {
 
 export default function AppleAlbum() {
   const { t } = useLanguage();
-  const [mode, setMode] = useState<'calendar' | 'gallery'>('calendar');
-  const [zoomed, setZoomed] = useState<ApplePhotoData | null>(null);
-
-  const isEmbed = useMemo(
-    () => new URLSearchParams(window.location.search).get('embed') === '1',
+  const params = useMemo(
+    () => new URLSearchParams(window.location.search),
     [],
   );
+  const isEmbed = params.get('embed') === '1';
+
+  /* ?mode=gallery opens straight into the photo wall; anything else (or no
+   * param) keeps the calendar as the landing view, which is the default the
+   * page has always used. The toggle below still works — this is only the
+   * starting state, so an embedded album can be pinned to one look. */
+  const [mode, setMode] = useState<'calendar' | 'gallery'>(
+    params.get('mode') === 'gallery' ? 'gallery' : 'calendar',
+  );
+  const [zoomed, setZoomed] = useState<ApplePhotoData | null>(null);
+  /* Guest book: `mention` is the photo pre-selected when a visitor taps
+   * "say something about this" inside the zoom sheet. */
+  const [mention, setMention] = useState<number | null>(null);
+  const commentRef = useRef<HTMLDivElement>(null);
+
+  /* The guest book is opt-in inside an iframe and opt-out on the full page:
+   *   /apple-album            → shown
+   *   /apple-album?embed=1    → hidden (album only, the historical default)
+   *   /apple-album?embed=1&comments=1 → shown inside the iframe
+   *   /apple-album?comments=0 → hidden
+   * Accepts 1/on/true and 0/off/false. */
+  const showComments = useMemo(() => {
+    const raw = params.get('comments')?.toLowerCase();
+    if (raw === '1' || raw === 'on' || raw === 'true') return true;
+    if (raw === '0' || raw === 'off' || raw === 'false') return false;
+    return !isEmbed;
+  }, [params, isEmbed]);
 
   useEffect(() => {
     if (!isEmbed) return;
@@ -750,11 +786,34 @@ export default function AppleAlbum() {
     return () => document.documentElement.classList.remove('apple-embed');
   }, [isEmbed]);
 
+  /* Host pages usually give the iframe a fixed height tuned to the album
+   * alone. Report our real height so the host can grow the frame — otherwise
+   * an enabled guest book (or an expanded reply thread) is simply cut off.
+   *   window.addEventListener('message', (e) => {
+   *     if (e.data?.type === 'apple-album:height') frame.style.height = e.data.height + 'px';
+   *   }); */
+  useEffect(() => {
+    if (!isEmbed || window.parent === window) return;
+    const post = () => {
+      window.parent.postMessage(
+        { type: 'apple-album:height', height: Math.ceil(document.documentElement.scrollHeight) },
+        '*',
+      );
+    };
+    const ro = new ResizeObserver(post);
+    ro.observe(document.body);
+    post();
+    return () => ro.disconnect();
+  }, [isEmbed]);
+
   const photosQuery = trpc.town.listApplePhotos.useQuery(undefined, {
     retry: 1,
     refetchOnWindowFocus: false,
   });
-  const photos = (photosQuery.data ?? []) as ApplePhotoData[];
+  const photos = useMemo(
+    () => (photosQuery.data ?? []) as ApplePhotoData[],
+    [photosQuery.data],
+  );
 
   /* The counter counts days, not photos — one apple per day is the whole
    * idea, and a hand-uploaded extra for a date that already has one should
@@ -827,6 +886,24 @@ export default function AppleAlbum() {
     isPending: (id) => liking.includes(id),
     like,
   };
+
+  /* ---- guest book ---------------------------------------------------- */
+  const openPhotoById = useCallback(
+    (photoId: number) => {
+      const found = photos.find((p) => p.id === photoId);
+      if (found) setZoomed(found);
+    },
+    [photos],
+  );
+
+  const mentionPhoto = useCallback((photoId: number) => {
+    setZoomed(null);
+    setMention(photoId);
+    /* The sheet is unmounting; wait a frame so the anchor exists. */
+    window.setTimeout(() => {
+      commentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  }, []);
 
   return (
     <div
@@ -912,9 +989,29 @@ export default function AppleAlbum() {
         <GalleryMode photos={photos} onOpen={setZoomed} likeApi={likeApi} />
       )}
 
+      {/* The guest book is shared by both modes. Inside an iframe it is
+          opt-in via ?comments=1 — an embedded form is cramped by default,
+          but some hosts do want the conversation. */}
+      {showComments && !photosQuery.isLoading && !photosQuery.error && (
+        <div ref={commentRef} className="mt-10 scroll-mt-24">
+          <CommentBoard
+            photos={photos}
+            mentionPhotoId={mention}
+            onMentionConsumed={() => setMention(null)}
+            onOpenPhoto={openPhotoById}
+          />
+        </div>
+      )}
+
       <AnimatePresence>
         {zoomed && (
-          <ZoomModal photo={zoomed} onClose={() => setZoomed(null)} likeApi={likeApi} />
+          <ZoomModal
+            photo={zoomed}
+            onClose={() => setZoomed(null)}
+            likeApi={likeApi}
+            /* No guest book → no "say something about this" button. */
+            onMention={showComments ? mentionPhoto : undefined}
+          />
         )}
       </AnimatePresence>
     </div>
