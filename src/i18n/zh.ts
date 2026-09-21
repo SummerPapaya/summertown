@@ -639,6 +639,8 @@ export const zh: DeepL10n<Messages> = {
       photoLabel: '提到一张照片',
       photoNone: '不指定，随便聊聊',
       photoPick: '选一张苹果',
+      photoClear: '清除选择',
+      photoEmptyMonth: '这个月没有苹果',
       submit: '贴到留言板上',
       submitting: '正在贴上去……',
       empty: '还没有人留言——来当第一个吧！',

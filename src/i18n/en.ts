@@ -706,6 +706,8 @@ export const en = {
       photoLabel: 'Mention a photo',
       photoNone: 'No photo — just saying hello',
       photoPick: 'Pick an apple',
+      photoClear: 'Clear selection',
+      photoEmptyMonth: 'no apples this month',
       submit: 'Pin it on the board',
       submitting: 'pinning…',
       empty: 'no notes yet — be the first to say hello!',

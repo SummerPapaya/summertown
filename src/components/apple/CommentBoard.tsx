@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Loader2, MessageCircle } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Loader2, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/providers/trpc';
 import { newClientId } from '@/lib/clientId';
@@ -308,28 +308,17 @@ export function CommentBoard({
         </label>
 
         <div className="flex flex-wrap items-center gap-3">
-          <label className="flex min-w-[200px] grow items-center gap-2">
-            <span className="font-hand shrink-0 text-2xl text-ink">
-              {t('apple.comments.photoLabel')}
-            </span>
-            <select
-              value={photoId ?? ''}
-              onChange={(e) => {
-                setPicked(e.target.value ? Number(e.target.value) : null);
-                onMentionConsumed?.();
-              }}
-              aria-label={t('apple.comments.photoPick')}
-              className="font-hand grow rounded-full border-[3px] border-white bg-cream px-3 py-1.5 text-xl text-ink shadow-md outline-none"
-            >
-              <option value="">{t('apple.comments.photoNone')}</option>
-              {photos.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.date}
-                  {p.description ? ` · ${p.description.slice(0, 18)}` : ''}
-                </option>
-              ))}
-            </select>
-          </label>
+          <span className="font-hand shrink-0 text-2xl text-ink">
+            {t('apple.comments.photoLabel')}
+          </span>
+          <PhotoCalendarPicker
+            photos={photos}
+            value={photoId}
+            onPick={(p) => {
+              setPicked(p ? p.id : null);
+              onMentionConsumed?.();
+            }}
+          />
 
           {photoId != null && byId.get(photoId) && (
             <img
@@ -519,4 +508,224 @@ export function CommentBoard({
       </div>
     </section>
   );
+}
+
+/* ------------------------------------------------------------------ */
+/* Photo picker — a mini month calendar instead of a <select>          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A long album made the dropdown unusable, and Chrome renders <option>
+ * text with the select's webfont (JasonHandwriting2) while Safari ignores
+ * it — glyphs missing from the font turned into tofu there. A calendar
+ * removes the native control entirely; every label it renders is either
+ * a digit or full-coverage font-hand text.
+ */
+function PhotoCalendarPicker({
+  photos,
+  value,
+  onPick,
+}: {
+  photos: PhotoLite[];
+  value: number | null;
+  onPick: (photo: PhotoLite | null) => void;
+}) {
+  const { t } = useLanguage();
+  const [open, setOpen] = useState(false);
+  const selected = useMemo(
+    () => photos.find((p) => p.id === value) ?? null,
+    [photos, value],
+  );
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className={cn(
+          'font-hand inline-flex max-w-full items-center gap-2 rounded-full border-[3px] border-white bg-cream px-4 py-1.5 text-xl text-ink shadow-md outline-none transition-transform hover:-translate-y-0.5',
+          open && '-translate-y-0.5',
+        )}
+        style={selected ? { color: APPLE_RED } : undefined}
+      >
+        {selected ? (
+          <>
+            <img
+              src={selected.thumbUrl ?? selected.imageUrl}
+              alt=""
+              className="h-7 w-7 rounded-full border-2 border-white object-cover"
+            />
+            <span className="truncate tabular-nums">{selected.date}</span>
+          </>
+        ) : (
+          <>
+            <Calendar className="h-5 w-5 shrink-0" style={{ color: APPLE_RED }} />
+            {t('apple.comments.photoPick')}
+          </>
+        )}
+      </button>
+
+      {open && (
+        <MiniMonth
+          photos={photos}
+          value={value}
+          onPick={(p) => {
+            onPick(p);
+            setOpen(false);
+          }}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function MiniMonth({
+  photos,
+  value,
+  onPick,
+  onClose,
+}: {
+  photos: PhotoLite[];
+  value: number | null;
+  onPick: (photo: PhotoLite | null) => void;
+  onClose: () => void;
+}) {
+  const { t } = useLanguage();
+
+  const byDate = useMemo(() => {
+    const map = new Map<string, PhotoLite>();
+    for (const p of photos) if (!map.has(p.date)) map.set(p.date, p);
+    return map;
+  }, [photos]);
+
+  /* Freshly mounted on every open: land on the picked photo's month, or the
+   * newest apple in the album. */
+  const anchorDate =
+    photos.find((p) => p.id === value)?.date ??
+    photos.reduce<PhotoLite | null>((a, b) => (!a || b.date > a.date ? b : a), null)
+      ?.date;
+  const [view, setView] = useState(() => {
+    const [y, m] = (anchorDate ?? todayString()).split('-').map(Number);
+    return { year: y, month: m - 1 };
+  });
+
+  function shift(delta: number) {
+    setView((v) => {
+      const m = v.month + delta;
+      return { year: v.year + Math.floor(m / 12), month: ((m % 12) + 12) % 12 };
+    });
+  }
+
+  const prefix = `${view.year}-${String(view.month + 1).padStart(2, '0')}`;
+  const daysInMonth = new Date(view.year, view.month + 1, 0).getDate();
+  const leadingBlanks = (new Date(view.year, view.month, 1).getDay() + 6) % 7; // Monday-first
+  const monthHasPhotos = photos.some((p) => p.date.startsWith(prefix));
+
+  return (
+    <>
+      {/* click-away catcher */}
+      <button
+        type="button"
+        aria-hidden
+        tabIndex={-1}
+        onClick={onClose}
+        className="fixed inset-0 z-40 cursor-default"
+      />
+      <div className="absolute left-0 top-full z-50 mt-2 w-[320px] max-w-[85vw] rounded-3xl border-[3px] border-white bg-cream p-3 shadow-[0_18px_40px_rgba(74,68,112,0.25)] sm:p-4">
+        <div className="mb-2 flex items-center justify-between gap-1">
+          <button
+            type="button"
+            onClick={() => shift(-1)}
+            aria-label={t('apple.prevMonth')}
+            className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-white/80 text-ink shadow-sm transition-transform hover:-translate-y-0.5"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <span className="font-hand text-xl text-ink">
+            {view.year} · {t(`apple.months.${view.month}`)}
+          </span>
+          <button
+            type="button"
+            onClick={() => shift(1)}
+            aria-label={t('apple.nextMonth')}
+            className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-white/80 text-ink shadow-sm transition-transform hover:-translate-y-0.5"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mb-1 grid grid-cols-7 gap-1">
+          {Array.from({ length: 7 }, (_, i) => (
+            <span
+              key={i}
+              className="text-center text-[10px] font-extrabold uppercase tracking-wide text-ink-soft"
+            >
+              {t(`apple.weekdays.${i}`)}
+            </span>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-7 gap-1">
+          {Array.from({ length: leadingBlanks }).map((_, i) => (
+            <span key={`blank-${i}`} />
+          ))}
+          {Array.from({ length: daysInMonth }, (_, i) => {
+            const day = i + 1;
+            const dateStr = `${prefix}-${String(day).padStart(2, '0')}`;
+            const photo = byDate.get(dateStr);
+            const isPicked = photo != null && photo.id === value;
+            return (
+              <button
+                key={dateStr}
+                type="button"
+                disabled={!photo}
+                onClick={() => photo && onPick(photo)}
+                title={photo ? photo.date : undefined}
+                className={cn(
+                  'relative flex h-9 items-center justify-center rounded-xl text-base tabular-nums',
+                  photo
+                    ? 'bg-white/85 text-ink shadow-sm transition-transform hover:z-10 hover:scale-110 hover:bg-white'
+                    : 'cursor-default text-ink-soft/40',
+                )}
+                style={isPicked ? { background: APPLE_RED, color: '#fff' } : undefined}
+              >
+                {day}
+                {photo && !isPicked && (
+                  <span
+                    className="absolute bottom-1 h-1 w-1 rounded-full"
+                    style={{ background: APPLE_RED }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {!monthHasPhotos && (
+          <p className="font-hand mt-2 text-center text-lg text-ink-soft">
+            {t('apple.comments.photoEmptyMonth')}
+          </p>
+        )}
+
+        {value != null && (
+          <button
+            type="button"
+            onClick={() => onPick(null)}
+            className="font-hand mt-2 w-full rounded-full border-2 border-white bg-white/70 py-1.5 text-lg text-ink-soft shadow-sm transition-transform hover:-translate-y-0.5 hover:text-ink"
+          >
+            {t('apple.comments.photoClear')}
+          </button>
+        )}
+      </div>
+    </>
+  );
+}
+
+/** Local YYYY-MM-DD — the picker only needs a sane fallback anchor. */
+function todayString(): string {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
