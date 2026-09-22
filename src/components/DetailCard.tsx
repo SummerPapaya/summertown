@@ -48,6 +48,7 @@ import type { LucideIcon } from 'lucide-react';
 import { TOTAL_STAMPS, type Landmark } from '@/lib/landmarks';
 import { useTown } from '@/lib/town';
 import { useLanguage, enText } from '@/lib/i18n';
+import PermanentExhibitions from '@/components/ExhibitionGrid';
 
 const FACT_ICONS: Record<string, LucideIcon> = {
   clock: Clock,
@@ -384,6 +385,12 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
                 })}
               </ul>
             </motion.div>
+
+            {/* Permanent exhibitions — the standing collection of web
+                projects curated by this landmark (data: src/lib/exhibitions.ts).
+                Rendered before the landmark-specific link blocks so, say, the
+                gallery's exhibits sit right under its three facts. */}
+            <PermanentExhibitions landmarkId={lm.id} variants={item} />
 
             {/* embedded podcast (Summer FM / Windbell Isle) */}
             {(lm.id === 'radio' || lm.id === 'windbell-isle') && (

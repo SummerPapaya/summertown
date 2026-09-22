@@ -208,6 +208,17 @@ export const zh: DeepL10n<Messages> = {
     libraryHome: '一个人的书房',
     libraryStarlight: '星空图书馆',
   },
+  exhibitions: {
+    heading: '常设展览',
+    enter: '进去看看',
+    comingSoon: '更多展览，筹备中',
+    peek: '悬停看实拍',
+    moon: {
+      title: '我有一只月亮，挂在遥远天上',
+      tag: '诗乐 · 互动',
+      desc: '时间长河里的月亮——溯游千年诗乐，收拢一笺月光。点击月亮，进入时间。',
+    },
+  },
   home: {
     fieldNotes: {
       kicker: '漫游笔记',

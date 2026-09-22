@@ -607,6 +607,16 @@ html[lang='zh-CN'] .font-hand[lang='en'] {
   zoom: 1;
 }
 
+/* exhibition chips (Pearl Gallery cards): the GBai subset misses chars like
+   互/停, and the default Nunito body stack has no hanzi at all — run these
+   chips on the full-coverage hand font instead */
+html[lang='zh-CN'] .ex-chip {
+  font-family: 'JasonHandwriting2', 'Caveat', cursive;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: none;
+}
+
 /* wish strips on the windbell pavilion line (Pavilion.tsx hook) */
 html[lang='zh-CN'] .line-clamp-4.font-hand {
   font-family: 'JasonHandwriting2', 'Caveat', cursive;

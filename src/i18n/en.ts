@@ -256,6 +256,17 @@ export const en = {
     libraryHome: 'A Study of One\'s Own',
     libraryStarlight: 'Starlight Library',
   },
+  exhibitions: {
+    heading: 'Permanent exhibitions',
+    enter: 'Step in',
+    comingSoon: 'More exhibits in the works',
+    peek: 'Hover to peek',
+    moon: {
+      title: 'I Have a Moon, Hanging Far in the Sky',
+      tag: 'Poetry · Interactive',
+      desc: 'A moon across the long river of time — a thousand years of Chinese poetry and song, all bathed in the same moonlight. Click the moon to enter time.',
+    },
+  },
   home: {
     fieldNotes: {
       kicker: 'Field notes',
