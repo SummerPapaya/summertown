@@ -732,6 +732,8 @@ export const en = {
       mentionedAlt: 'the apple mentioned',
       jump: 'Show me this apple',
       mentionCta: 'Say something about this 🍎',
+      writeComment: 'Leave a note',
+      closeForm: 'Close',
       anonymous: 'a passer-by',
       reply: 'Reply',
       replyPlaceholder: 'say something back…',

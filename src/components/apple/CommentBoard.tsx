@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Calendar, ChevronLeft, ChevronRight, Loader2, MessageCircle } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Calendar, ChevronLeft, ChevronRight, Loader2, MessageCircle, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/providers/trpc';
 import { newClientId } from '@/lib/clientId';
@@ -112,6 +112,11 @@ export function CommentBoard({
   const [replyTo, setReplyTo] = useState<number | null>(null);
   const [replyDraft, setReplyDraft] = useState('');
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [formOpen, setFormOpen] = useState(false);
+
+  useEffect(() => {
+    if (mentionPhotoId) setFormOpen(true);
+  }, [mentionPhotoId]);
 
   const total = listQuery.data?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -255,7 +260,25 @@ export function CommentBoard({
         )}
       </header>
 
-      <form onSubmit={submit} className="mx-auto max-w-xl space-y-3">
+      <button
+        type="button"
+        onClick={() => setFormOpen((o) => !o)}
+        aria-expanded={formOpen}
+        className="font-hand mx-auto mt-3 flex items-center gap-2 rounded-full border-[3px] border-white px-6 py-2.5 text-2xl text-white shadow-[0_5px_0_rgba(74,68,112,0.18)] transition-transform hover:-translate-y-0.5"
+        style={{ background: APPLE_RED }}
+      >
+        <PenLine className="h-5 w-5" />
+        {formOpen ? t('apple.comments.closeForm') : t('apple.comments.writeComment')}
+      </button>
+
+      <div
+        className={cn(
+          'grid transition-all duration-500 ease-squash',
+          formOpen ? 'mt-4 grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+        )}
+      >
+        <div className="overflow-hidden">
+          <form onSubmit={submit} className="mx-auto max-w-xl space-y-3">
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block">
             <span className="font-hand mb-1 block text-2xl text-ink">
@@ -338,7 +361,9 @@ export function CommentBoard({
             {busy ? t('apple.comments.submitting') : t('apple.comments.submit')}
           </button>
         </div>
-      </form>
+          </form>
+        </div>
+      </div>
 
       <div className="mt-7 border-t-2 border-dashed border-[#E8563F33] pt-6">
         {listQuery.isLoading ? (

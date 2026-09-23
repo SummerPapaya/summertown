@@ -665,6 +665,8 @@ export const zh: DeepL10n<Messages> = {
       mentionedAlt: '被提到的苹果',
       jump: '看看这张苹果',
       mentionCta: '聊聊这张 🍎',
+      writeComment: '我要留言',
+      closeForm: '收起',
       anonymous: '一位路人',
       reply: '回复',
       replyPlaceholder: '回一句……',
