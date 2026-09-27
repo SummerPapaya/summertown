@@ -104,15 +104,14 @@ function withCard(html: string, card: LinkCard, pathname: string, origin: string
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${title}</title>`);
 }
 
-/* The Magic Room is its own static sub-app inside the assets directory at
- * `magic-room/`. The bare path matches no file, and the assets layer would
- * hand it to this Worker, where the SPA fallback below would render the town
- * map instead of the room — redirect it to the sub-app's index first. The
- * `_redirects` file does the same job at the assets layer; this is the
- * belt-and-braces copy. */
-// Preserve any query string so the sub-app can pick up ?lang= (used by the
-// DetailCard entry to mirror the town's current language).
-app.get("/magic-room", (c) => c.redirect(`/magic-room/${new URL(c.req.url).search}`, 301));
+/* The Magic Room moved out: it is now its own Cloudflare Worker at
+ * `magic-room.summercommences.com`, built and deployed from the magic-room
+ * repo. Keep the old `/magic-room` path alive for bookmarks and for the
+ * town's own card, and preserve any query string so `?lang=` still carries
+ * the town's language across. Once `public/magic-room/` is deleted these
+ * paths no longer match a file, so the wildcard arm is what catches them. */
+app.get("/magic-room", (c) => c.redirect(`https://magic-room.summercommences.com/${new URL(c.req.url).search}`, 301));
+app.get("/magic-room/*", (c) => c.redirect(`https://magic-room.summercommences.com/${new URL(c.req.url).search}`, 301));
 
 /* Static assets — produced by `vite build` into `dist/public/`. Requests that
  * match a real file (`/`, `/assets/*`, `/logo.svg`, …) are served by the

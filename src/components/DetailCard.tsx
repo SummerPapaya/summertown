@@ -471,14 +471,15 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
               />
             )}
 
-            {/* Magic Room — the witch's own Three.js reading room, a static
-                sub-app at /magic-room/. A plain <a>, not <Link>: React Router
-                has no route there, so client-side navigation would land on
-                the SPA fallback instead of the room. */}
+            {/* Magic Room — the witch's own Three.js reading room. It now lives
+                on its own Cloudflare Worker at magic-room.summercommences.com,
+                so this is a cross-origin <a>. `?lang=` still mirrors the town's
+                current language: the room keeps its own localStorage once it is
+                on a separate origin. */}
             {lm.id === 'magic-house' && (
               <motion.div variants={item} className="mt-5">
                 <a
-                  href={`/magic-room?lang=${lang}`}
+                  href={`https://magic-room.summercommences.com?lang=${lang}`}
                   className="group flex items-center gap-2.5 rounded-[20px] border-[3px] border-white bg-white/60 px-4 py-3 shadow-sticker transition-all duration-300 ease-squash hover:-translate-y-0.5 hover:bg-white/80"
                 >
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-white bg-coral/30">

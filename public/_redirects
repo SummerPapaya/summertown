@@ -1,4 +1,5 @@
 # Cloudflare Static Assets redirects (highest priority, evaluated before files).
-# The Magic Room lives at /magic-room/ as a static sub-app; send the bare
-# path (which would otherwise fall through to the town SPA) to its index.
+# The Magic Room used to be a static sub-app here; it now lives on its own
+# Worker at magic-room.summercommences.com. Send the bare path to the slash
+# form, which api/boot.ts then 301s off-site (preserving ?lang=).
 /magic-room /magic-room/ 301
