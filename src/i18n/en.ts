@@ -252,7 +252,6 @@ export const en = {
     townCalendar: 'Town calendar — pinned notices →',
     postcardWall: 'Postcard wall — leave a note →',
     starlightLibrary: 'A Study of One\'s Own · Starlight Library →',
-    magicRoom: 'Come in for a spell →',
     libraryHome: 'A Study of One\'s Own',
     libraryStarlight: 'Starlight Library',
   },
@@ -265,6 +264,20 @@ export const en = {
       title: 'I Have a Moon, Hanging Far in the Sky',
       tag: 'Poetry · Interactive',
       desc: 'A moon across the long river of time — a thousand years of Chinese poetry and song, all bathed in the same moonlight. Click the moon to enter time.',
+    },
+  },
+  rooms: {
+    heading: 'The floating front door',
+    hint: 'It opens onto a different floor every time — the coordinate of where it leads is written on the plate.',
+    peek: 'Push to open',
+    enter: 'Push it open',
+    magicRoom: {
+      title: 'The Magic Room',
+      desc: 'The witch\'s own 3D loft — flowers, a guqin and a napping cat live here.',
+    },
+    towerStudy: {
+      title: 'The Tower Study',
+      desc: 'A two-storey tower above the clouds: the study upstairs, the witch\'s bedroom below, 18 tiny discoveries hidden inside.',
     },
   },
   home: {

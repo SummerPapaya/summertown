@@ -49,6 +49,7 @@ import { TOTAL_STAMPS, type Landmark } from '@/lib/landmarks';
 import { useTown } from '@/lib/town';
 import { useLanguage, enText } from '@/lib/i18n';
 import PermanentExhibitions from '@/components/ExhibitionGrid';
+import FrontDoors from '@/components/RoomDoors';
 
 const FACT_ICONS: Record<string, LucideIcon> = {
   clock: Clock,
@@ -203,7 +204,7 @@ function HoverPreviewRow({
 
 export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCardProps) {
   const { stamps, collectStamp } = useTown();
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const name = t(lm.nameKey);
   const [justStamped, setJustStamped] = useState(false);
@@ -471,26 +472,12 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
               />
             )}
 
-            {/* Magic Room — the witch's own Three.js reading room. It now lives
-                on its own Cloudflare Worker at magic-room.summercommences.com,
-                so this is a cross-origin <a>. `?lang=` still mirrors the town's
-                current language: the room keeps its own localStorage once it is
-                on a separate origin. */}
-            {lm.id === 'magic-house' && (
-              <motion.div variants={item} className="mt-5">
-                <a
-                  href={`https://magic-room.summercommences.com?lang=${lang}`}
-                  className="group flex items-center gap-2.5 rounded-[20px] border-[3px] border-white bg-white/60 px-4 py-3 shadow-sticker transition-all duration-300 ease-squash hover:-translate-y-0.5 hover:bg-white/80"
-                >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-white bg-coral/30">
-                    <Wand2 className="h-4 w-4 text-coral" />
-                  </span>
-                  <span className="font-display text-sm font-semibold text-ink transition-transform duration-300 ease-squash group-hover:scale-[1.02]">
-                    {t('detail.magicRoom')}
-                  </span>
-                </a>
-              </motion.div>
-            )}
+            {/* Magic House — the floating front door: two rooms hang side by
+                side, each behind a door-shaped tile that lifts on hover. The
+                rooms live on their own domains (see src/lib/rooms.ts), and the
+                floor number on each plate changes every day — the lore says
+                the front door opens onto a different floor each time. */}
+            {lm.id === 'magic-house' && <FrontDoors landmarkId={lm.id} variants={item} />}
 
             {/* footer row */}
             <motion.div variants={item} className="mt-6 flex flex-wrap items-center gap-3">

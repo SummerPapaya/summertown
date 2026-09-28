@@ -204,7 +204,6 @@ export const zh: DeepL10n<Messages> = {
     townCalendar: '小镇日历 · 看看布告 →',
     postcardWall: '明信片墙 · 留一句话 →',
     starlightLibrary: '一个人的书房 · 星空图书馆 →',
-    magicRoom: '进来坐一会儿吧 →',
     libraryHome: '一个人的书房',
     libraryStarlight: '星空图书馆',
   },
@@ -217,6 +216,20 @@ export const zh: DeepL10n<Messages> = {
       title: '我有一只月亮，挂在遥远天上',
       tag: '诗乐 · 互动',
       desc: '时间长河里的月亮——溯游千年诗乐，收拢一笺月光。点击月亮，进入时间。',
+    },
+  },
+  rooms: {
+    heading: '悬空的前门',
+    hint: '前门每次都通向不同楼层——目的地的坐标是什么，得问门。',
+    peek: '推门看看',
+    enter: '推门进去',
+    magicRoom: {
+      title: '魔法书屋',
+      desc: '女巫的一间 3D 小屋：花、琴与打盹的猫，都住在这里。',
+    },
+    towerStudy: {
+      title: '塔楼书房',
+      desc: '漂浮在云海上的双层塔楼：楼上是书房，楼下是女巫的卧室，藏着 18 个小发现。',
     },
   },
   home: {
