@@ -6,7 +6,7 @@
  * add one entry below, and translate the three copy keys in src/i18n/*.
  * The detail card picks it up automatically — no component edits.
  */
-import { Moon, type LucideIcon } from 'lucide-react';
+import { Globe, Moon, type LucideIcon } from 'lucide-react';
 
 export interface Exhibition {
   id: string;
@@ -27,6 +27,9 @@ export interface Exhibition {
   descKey: string;
   /** tiny corner tag, e.g. 诗乐 · 互动 */
   tagKey: string;
+  /** if true, the outgoing link carries ?lang={currentLang} so the target site
+   *  can match Summer Town's active language. */
+  langAware?: boolean;
 }
 
 export const EXHIBITIONS: Exhibition[] = [
@@ -42,6 +45,19 @@ export const EXHIBITIONS: Exhibition[] = [
     titleKey: 'exhibitions.moon.title',
     descKey: 'exhibitions.moon.desc',
     tagKey: 'exhibitions.moon.tag',
+  },
+  {
+    id: 'relics',
+    landmarkId: 'gallery',
+    href: 'https://chinese-relics-overseas.summercommences.com/',
+    poster: '/exhibition-relics-cover.jpg',
+    shot: '/exhibition-relics-shot.jpg',
+    accent: '#2d5a6b',
+    Icon: Globe,
+    titleKey: 'exhibitions.relics.title',
+    descKey: 'exhibitions.relics.desc',
+    tagKey: 'exhibitions.relics.tag',
+    langAware: true,
   },
 ];
 

@@ -265,6 +265,11 @@ export const en = {
       tag: 'Poetry · Interactive',
       desc: 'A moon across the long river of time — a thousand years of Chinese poetry and song, all bathed in the same moonlight. Click the moon to enter time.',
     },
+    relics: {
+      title: 'Shan Hai Gui Cang · Chinese Relics Overseas Map',
+      tag: 'Relics · Map',
+      desc: 'Objects travel far; their homeland stays near. Follow a faint light across mountains and seas to reunion.',
+    },
   },
   rooms: {
     heading: 'The floating front door',

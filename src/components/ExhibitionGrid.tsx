@@ -16,9 +16,16 @@ export default function PermanentExhibitions({
   landmarkId: string;
   variants: Variants;
 }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const items = exhibitionsFor(landmarkId);
   if (items.length === 0) return null;
+
+  const hrefFor = (href: string, langAware?: boolean) => {
+    if (!langAware) return href;
+    const url = new URL(href);
+    url.searchParams.set('lang', lang);
+    return url.toString();
+  };
 
   return (
     <motion.div variants={variants} className="mt-6">
@@ -35,7 +42,7 @@ export default function PermanentExhibitions({
           return (
             <a
               key={ex.id}
-              href={ex.href}
+              href={hrefFor(ex.href, ex.langAware)}
               target="_blank"
               rel="noreferrer"
               className="group block rounded-[20px] border-[3px] border-white bg-white/60 p-2.5 shadow-sticker transition-all duration-300 ease-squash hover:-translate-y-0.5 hover:bg-white/80"
