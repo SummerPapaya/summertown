@@ -634,3 +634,206 @@ html[lang='zh-CN'] .lg\:columns-3 .text-sm {
   font-family: 'JasonHandwriting2', 'Caveat', cursive;
   font-weight: 400;
 }
+
+/* ---------- the floating front door (RoomDoors.tsx): one arched door with a floor dial on its lintel ----------
+   Layout follows the card's own width (a container query): on wide cards the panel of floors stands beside the
+   door, top floor first; on narrow ones it becomes a row of chips under it. The door's colours are the Magic
+   House's lilac walls, deeper arch and window-frame purple, kept to this block (--leaf is taken site-wide). */
+.fd-root {
+  container: fd / inline-size;
+  --fd-leaf: #e3dcf8;
+  --fd-panel: #c3b6ee;
+  --fd-frame: #8a79d6;
+  --fd-inner: rgba(138, 121, 214, 0.5);
+  --fd-trellis: rgba(138, 121, 214, 0.16);
+  --fd-shadow: 0 12px 32px rgba(74, 68, 112, 0.12), 0 3px 0 rgba(74, 68, 112, 0.06);
+  --fd-squash: cubic-bezier(0.22, 1.2, 0.36, 1);
+  --fd-glide: cubic-bezier(0.22, 1, 0.36, 1);
+}
+.fd-layout {
+  margin-top: 8px;
+  display: grid;
+  gap: 14px 26px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'stage' 'panel' 'caption';
+}
+.fd-stage { grid-area: stage; position: relative; padding-top: 58px; min-width: 0; }
+
+/* the dial rides on the lintel */
+.fd-dial {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 132px; height: 70px; z-index: 6; overflow: visible;
+  filter: drop-shadow(0 3px 0 rgba(74, 68, 112, 0.08));
+}
+.fd-dn { cursor: pointer; outline: none; }
+.fd-dn text { transition: fill 0.3s; }
+.fd-dn line { transition: stroke 0.3s; }
+.fd-dn:focus-visible .fd-hit { stroke: var(--fd-frame); stroke-width: 1.2; }
+.fd-needle { transform-box: view-box; transform-origin: 66px 64px; transition: transform 0.85s var(--fd-squash); }
+
+/* the door */
+.fd-door {
+  position: relative; display: block; width: 100%;
+  aspect-ratio: 16 / 10; overflow: hidden;
+  border-radius: 14px; border: 3px solid #fff; box-shadow: var(--fd-shadow);
+  touch-action: pan-y; -webkit-tap-highlight-color: transparent;
+}
+.fd-door:focus-visible { outline: 3px solid var(--fd-frame); outline-offset: 3px; }
+.fd-room {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  transform: scale(1.06); transition: transform 0.9s var(--fd-glide);
+}
+.fd-leaf {
+  position: absolute; top: 0; bottom: 0; width: 50%; overflow: hidden;
+  background: var(--fd-leaf); transition: transform 0.9s var(--fd-glide); will-change: transform;
+}
+.fd-left { left: 0; border-right: 2px solid rgba(255, 255, 255, 0.7); }
+.fd-right { right: 0; border-left: 2px solid rgba(255, 255, 255, 0.7); }
+.fd-door.is-peek .fd-left { transform: translateX(-40%); }
+.fd-door.is-peek .fd-right { transform: translateX(40%); }
+.fd-door.is-open .fd-left, .fd-door:focus-visible .fd-left { transform: translateX(-100%); }
+.fd-door.is-open .fd-right, .fd-door:focus-visible .fd-right { transform: translateX(100%); }
+.fd-door.is-open .fd-room, .fd-door:focus-visible .fd-room { transform: scale(1); }
+
+/* the two leaves share one arch: each half curves on its outer side and is square at the seam */
+.fd-orn { position: absolute; inset: 0; }
+.fd-orn > * { position: absolute; pointer-events: none; }
+.fd-leaf-frame { inset: 7px 0 7px 7px; border: 3px solid var(--fd-frame); border-right: 0; border-radius: 100% 0 0 12px / 58% 0 0 12px; }
+.fd-arch { inset: 10px 0 10px 10px; border-radius: 100% 0 0 11px / 58% 0 0 11px; background: var(--fd-panel); }
+.fd-trellis {
+  inset: 19px 0 19px 19px; border-radius: 100% 0 0 8px / 58% 0 0 8px;
+  background-image:
+    repeating-linear-gradient(45deg, var(--fd-trellis) 0 1px, transparent 1px 15px),
+    repeating-linear-gradient(-45deg, var(--fd-trellis) 0 1px, transparent 1px 15px);
+}
+.fd-inner { inset: 14px 0 14px 14px; border: 2px solid var(--fd-inner); border-right: 0; border-radius: 100% 0 0 10px / 58% 0 0 10px; }
+.fd-fleur { left: 100%; top: 24px; width: 35px; height: 30px; transform: translateX(-50%); }
+.fd-medal { left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); }
+.fd-medal svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.fd-medal .is-out { animation: fd-medal-out 0.45s forwards; }
+.fd-medal .is-in { animation: fd-medal-in 0.45s var(--fd-squash) both; }
+@keyframes fd-medal-out { to { opacity: 0; transform: scale(0.5) rotate(-40deg); } }
+@keyframes fd-medal-in { from { opacity: 0; transform: scale(0.5) rotate(40deg); } }
+.fd-bead { left: 50%; width: 9px; height: 9px; border: 2px solid var(--fd-inner); transform: translateX(-50%) rotate(45deg); }
+.fd-dot { left: 50%; width: 4px; height: 4px; background: var(--butter); transform: translateX(-50%) rotate(45deg); }
+.fd-foot1 { left: 50%; bottom: 46px; width: 13px; height: 13px; border: 2px solid var(--fd-inner); transform: translateX(-50%) rotate(45deg); }
+.fd-foot2 { left: 50%; bottom: 30px; width: 7px; height: 7px; background: var(--butter); transform: translateX(-50%) rotate(45deg); }
+.fd-sparkle { left: 16px; top: 12px; width: 14px; height: 14px; }
+.fd-knob { position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%; border: 2px solid #fff; background: var(--butter); transform: translateY(-50%); }
+.fd-left .fd-knob { right: 9px; }
+.fd-right .fd-knob { left: 9px; }
+@container fd (max-width: 420px) {
+  .fd-fleur { top: 17px; transform: translateX(-50%) scale(0.8); }
+  .fd-bead, .fd-dot { display: none; }
+  .fd-foot1 { bottom: 30px; }
+  .fd-foot2 { bottom: 18px; }
+}
+
+/* the plate (floor + today's minute) and the peek hint, as stickers on the door */
+.fd-plate, .fd-peek {
+  position: absolute; z-index: 8;
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 2px solid #fff; background: rgba(255, 255, 255, 0.85); border-radius: 999px;
+  padding: 1px 10px; box-shadow: var(--fd-shadow); backdrop-filter: blur(4px);
+  font-size: 0.66rem; font-weight: 800; letter-spacing: 0.12em; color: var(--ink-soft);
+  transition: opacity 0.3s;
+}
+.fd-plate { left: 8px; top: 8px; font-variant-numeric: tabular-nums; }
+.fd-peek { right: 8px; bottom: 8px; letter-spacing: 0.08em; }
+.fd-door.is-open .fd-peek, .fd-door:focus-visible .fd-peek { opacity: 0; }
+.fd-coord { white-space: nowrap; }
+.fd-num-wrap { position: relative; display: inline-block; overflow: hidden; height: 1.35em; line-height: 1.35em; vertical-align: -0.35em; min-width: 0.9em; text-align: center; }
+.fd-num { display: inline-block; }
+.fd-num.is-gone { position: absolute; left: 0; right: 0; top: 0; }
+.fd-num.go-up { animation: fd-num-go-up 0.45s forwards; }
+.fd-num.go-down { animation: fd-num-go-down 0.45s forwards; }
+.fd-num.come-up { animation: fd-num-come-up 0.45s var(--fd-squash) both; }
+.fd-num.come-down { animation: fd-num-come-down 0.45s var(--fd-squash) both; }
+@keyframes fd-num-go-up { to { transform: translateY(-100%); opacity: 0; } }
+@keyframes fd-num-go-down { to { transform: translateY(100%); opacity: 0; } }
+@keyframes fd-num-come-up { from { transform: translateY(100%); opacity: 0; } }
+@keyframes fd-num-come-down { from { transform: translateY(-100%); opacity: 0; } }
+.fd-plate.is-ding-1 { animation: fd-ding-1 0.55s var(--fd-squash); }
+.fd-plate.is-ding-2 { animation: fd-ding-2 0.55s var(--fd-squash); }
+@keyframes fd-ding-1 { 40% { transform: scale(1.16); } }
+@keyframes fd-ding-2 { 40% { transform: scale(1.16); } }
+
+/* the ride between floors (a small lift, a band of light passing the door), and the bump at either end;
+   each comes in two names so a second ride restarts the animation */
+.fd-door.is-ride-1 { animation: fd-ride-1 0.74s var(--fd-glide); }
+.fd-door.is-ride-2 { animation: fd-ride-2 0.74s var(--fd-glide); }
+@keyframes fd-ride-1 { 35% { transform: translateY(calc(var(--dir, 1) * -9px)); } 75% { transform: translateY(calc(var(--dir, 1) * 3px)); } }
+@keyframes fd-ride-2 { 35% { transform: translateY(calc(var(--dir, 1) * -9px)); } 75% { transform: translateY(calc(var(--dir, 1) * 3px)); } }
+.fd-door::after {
+  content: ''; position: absolute; left: 0; right: 0; top: 20%; height: 60%; z-index: 7; pointer-events: none; opacity: 0;
+  background: linear-gradient(to bottom, rgba(255, 249, 239, 0), rgba(255, 249, 239, 0.55), rgba(255, 249, 239, 0));
+}
+.fd-door.is-ride-1::after { animation: fd-sweep-1 0.74s var(--fd-glide); }
+.fd-door.is-ride-2::after { animation: fd-sweep-2 0.74s var(--fd-glide); }
+@keyframes fd-sweep-1 { 0% { opacity: 0; transform: translateY(calc(var(--dir, 1) * 120%)); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(calc(var(--dir, 1) * -120%)); } }
+@keyframes fd-sweep-2 { 0% { opacity: 0; transform: translateY(calc(var(--dir, 1) * 120%)); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(calc(var(--dir, 1) * -120%)); } }
+.fd-door.is-bump-1 { animation: fd-bump-1 0.4s var(--fd-squash); }
+.fd-door.is-bump-2 { animation: fd-bump-2 0.4s var(--fd-squash); }
+@keyframes fd-bump-1 { 30% { transform: translateX(-6px); } 65% { transform: translateX(4px); } }
+@keyframes fd-bump-2 { 30% { transform: translateX(-6px); } 65% { transform: translateX(4px); } }
+
+.fd-toast {
+  position: absolute; left: 50%; bottom: 14px; z-index: 9; transform: translate(-50%, 8px);
+  width: max-content; max-width: calc(100% - 28px);
+  background: var(--ink); color: var(--cream); border-radius: 14px; padding: 7px 14px;
+  font-size: 0.82rem; font-weight: 700; text-align: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.35s var(--fd-squash);
+}
+.fd-toast.is-show { opacity: 1; transform: translate(-50%, 0); }
+
+/* the caption under the door */
+.fd-caption { grid-area: caption; padding: 0 4px; min-width: 0; transition: opacity 0.3s; }
+.fd-caption.is-fade { opacity: 0; }
+.fd-enter {
+  margin-top: 12px; display: inline-flex; align-items: center; gap: 6px;
+  background: #fff; color: var(--ink); border-radius: 999px; padding: 6px 15px;
+  font-weight: 800; font-size: 0.85rem; box-shadow: 0 4px 0 rgba(74, 68, 112, 0.12);
+  transition: transform 0.25s var(--fd-squash);
+}
+.fd-enter:hover { transform: translateY(-2px); }
+.fd-enter:focus-visible, .fd-fb:focus-visible { outline: 3px solid var(--fd-frame); outline-offset: 2px; }
+
+/* the floors: a row of chips under the door; a lift panel beside it on wide cards */
+.fd-panel { grid-area: panel; min-width: 0; }
+.fd-panel-head { display: none; }
+.fd-floors { list-style: none; margin: 0; padding: 2px 2px 6px; display: flex; flex-wrap: wrap; gap: 6px; }
+.fd-fb {
+  font: inherit; color: var(--ink); cursor: pointer; text-align: left;
+  display: flex; align-items: center; gap: 6px;
+  background: #fff; border: 2px solid #fff; border-radius: 999px;
+  padding: 3px 11px 3px 3px; box-shadow: 0 3px 0 rgba(74, 68, 112, 0.07);
+  transition: background 0.2s, border-color 0.2s, transform 0.25s var(--fd-squash);
+}
+.fd-fb:hover { transform: translateY(-1px); }
+.fd-fb[aria-pressed='true'] { background: var(--lilac); border-color: var(--fd-frame); }
+.fd-fb-num {
+  flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--fd-leaf); color: var(--ink); font-family: 'Fredoka', 'Nunito', sans-serif; font-weight: 600; font-size: 0.85rem;
+}
+.fd-fb[aria-pressed='true'] .fd-fb-num { background: var(--coral); color: #fff; }
+.fd-fb-name { font-size: 1.02rem; line-height: 1.2; white-space: nowrap; }
+.fd-tag { display: none; font-size: 0.68rem; font-weight: 800; border-radius: 999px; padding: 2px 8px; background: var(--butter); color: var(--ink); white-space: nowrap; }
+.fd-mini-today { width: 8px; height: 8px; border-radius: 50%; background: var(--butter); border: 1.5px solid #fff; box-shadow: 0 0 0 1px var(--butter); }
+.fd-panel-foot { margin: 6px 4px 0; font-size: 0.75rem; font-weight: 700; color: var(--ink-soft); }
+@container fd (min-width: 640px) {
+  .fd-layout { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); grid-template-areas: 'stage panel' 'caption panel'; align-items: start; }
+  .fd-panel { margin-top: 58px; background: var(--paper); border: 3px solid #fff; border-radius: 22px; padding: 16px 14px 14px; }
+  .fd-panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0 4px 10px; }
+  .fd-panel-head h4 { margin: 0; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-soft); }
+  .fd-panel-head span { font-size: 0.75rem; font-weight: 700; color: var(--ink-soft); }
+  .fd-floors { flex-direction: column-reverse; flex-wrap: nowrap; padding: 0; gap: 8px; }
+  .fd-fb { width: 100%; border-radius: 16px; padding: 8px 12px 8px 8px; gap: 12px; }
+  .fd-fb-num { width: 36px; height: 36px; font-size: 1.05rem; }
+  .fd-fb-name { font-size: 1.3rem; flex: 1; }
+  .fd-tag { display: inline-block; }
+  .fd-mini-today { display: none; }
+  .fd-panel-foot { margin-top: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fd-root *, .fd-root *::before, .fd-root *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}

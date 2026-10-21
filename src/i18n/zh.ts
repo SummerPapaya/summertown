@@ -225,9 +225,21 @@ export const zh: DeepL10n<Messages> = {
   },
   rooms: {
     heading: '悬空的前门',
-    hint: '前门每次都通向不同楼层——目的地的坐标是什么，得问门。',
+    hint: '前门每次都通向不同目的地——想去别的地方，拨一拨门上的转盘。',
     peek: '推门看看',
+    peekTouch: '点一下看看',
     enter: '推门进去',
+    floors: '楼层',
+    todayAt: '今天停在第 {floor} 层',
+    todayTag: '今日',
+    dial: '楼层转盘',
+    goTo: '去第 {floor} 层：{title}',
+    arrived: '到了，第 {floor} 层：{title}',
+    doorLabel: '第 {floor} 层：{title}，推门进去',
+    bottom: '已经是最底层了',
+    top: '再往上就是屋顶了',
+    footMouse: '鼠标在门上停一下，门就会打开；键盘 ← → 也能换层。',
+    footTouch: '左右滑门也能换层；点一下门看看，再点一下进去。',
     magicRoom: {
       title: '魔法书屋',
       desc: '女巫的一间 3D 小屋：花、琴与打盹的猫，都住在这里。',
@@ -235,6 +247,11 @@ export const zh: DeepL10n<Messages> = {
     towerStudy: {
       title: '塔楼书房',
       desc: '漂浮在云海上的双层塔楼：楼上是书房，楼下是女巫的卧室，藏着 18 个小发现。',
+    },
+    oracleInn: {
+      title: '借问众神明',
+      floor: '占卜小屋',
+      desc: '魔法小屋里的一本立体占卜书：翻开一页，到星幕帐篷抽一张塔罗，或去东方神龛掷筊求签。东西方民俗文化的趣味演示，仅供娱乐。',
     },
   },
   home: {

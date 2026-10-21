@@ -1,17 +1,18 @@
 /**
  * Front doors — the little rooms you can push into from a landmark's detail
- * card. The Magic House hangs two of them side by side, echoing its lore:
- * the floating front door opens onto a different floor each time.
+ * card. The Magic House has one floating front door with a dial on its
+ * lintel: each room is a floor behind it, echoing its lore that the door
+ * opens onto a different floor each time.
  *
- * To add a room: drop its screenshot into /public, add one entry below and
- * translate its copy keys in src/i18n/*. The detail card picks it up
- * automatically.
+ * To add a room: drop its screenshot into /public, add one entry below (the
+ * order is the floor order, bottom first) and translate its copy keys in
+ * src/i18n/*. The door picks it up as a new floor automatically.
  */
 
 /** which glyph sits on the door plate, beside the coordinate */
-export type RoomIcon = 'wand' | 'orb';
+export type RoomIcon = 'wand' | 'orb' | 'card';
 /** which ornament is inlaid in the middle of each leaf */
-export type RoomMotif = 'flower' | 'moon';
+export type RoomMotif = 'flower' | 'moon' | 'star';
 
 export interface Room {
   id: string;
@@ -25,8 +26,10 @@ export interface Room {
   Icon: RoomIcon;
   motif: RoomMotif;
   titleKey: string;
+  /** the name on the floor buttons and the dial, when it differs from the title */
+  floorKey?: string;
   descKey: string;
-  /** folds into the magic coordinate stamped on the door each day */
+  /** folds into the minute tick stamped on the door plate each day */
   coordSeed: number;
 }
 
@@ -55,24 +58,37 @@ export const ROOMS: Room[] = [
     descKey: 'rooms.towerStudy.desc',
     coordSeed: 7,
   },
+  {
+    id: 'oracle-inn',
+    landmarkId: 'magic-house',
+    href: 'https://oracle-inn.summercommences.com/',
+    shot: '/room-oracle-shot.jpg',
+    accent: '#2b1f33',
+    Icon: 'card',
+    motif: 'star',
+    titleKey: 'rooms.oracleInn.title',
+    floorKey: 'rooms.oracleInn.floor',
+    descKey: 'rooms.oracleInn.desc',
+    coordSeed: 11,
+  },
 ];
 
 export const roomsFor = (landmarkId: string): Room[] =>
   ROOMS.filter((r) => r.landmarkId === landmarkId);
 
-const LAYERS = ['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ', 'Ⅴ', 'Ⅵ', 'Ⅶ', 'Ⅷ', 'Ⅸ'];
+/** floor numerals, ground floor first */
+export const FLOOR_NUMERALS = ['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ', 'Ⅴ', 'Ⅵ', 'Ⅶ', 'Ⅷ', 'Ⅸ'];
+
+const mod = (a: number, b: number) => ((a % b) + b) % b;
+const utcDay = () => Math.floor(Date.now() / 86_400_000);
 
 /**
- * The door carries a different magic coordinate every day — but the same one
- * for everyone on the same day, so it stays consistent per visit. Two parts:
- * a layer (whatever the roman numeral means is the door's business) and a
- * minute tick, both folded out of the date so they look scattered rather than
- * counting up in order.
+ * Which floor the front door stops at today: the same for everyone on the
+ * same day, and folded out of the date so the floors look scattered rather
+ * than taking turns in order.
  */
-export const coordToday = (seed: number): { layer: string; tick: string } => {
-  const day = Math.floor(Date.now() / 86_400_000);
-  return {
-    layer: LAYERS[(day * 7 + seed * 13) % LAYERS.length],
-    tick: String((day * 31 + seed * 17) % 60).padStart(2, '0'),
-  };
-};
+export const floorToday = (floors: number): number => mod(utcDay() * 7 + 3, Math.max(1, floors));
+
+/** the minute tick on the door plate (the °…′ after the floor), also daily */
+export const tickToday = (seed: number): string =>
+  String(mod(utcDay() * 31 + seed * 17, 60)).padStart(2, '0');

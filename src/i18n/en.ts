@@ -273,9 +273,21 @@ export const en = {
   },
   rooms: {
     heading: 'The floating front door',
-    hint: 'It opens onto a different floor every time — the coordinate of where it leads is written on the plate.',
+    hint: 'It opens onto somewhere different every time — to go elsewhere, turn the dial on the door.',
     peek: 'Push to open',
+    peekTouch: 'Tap to peek',
     enter: 'Push it open',
+    floors: 'Floors',
+    todayAt: 'Stops at floor {floor} today',
+    todayTag: 'Today',
+    dial: 'Floor dial',
+    goTo: 'Go to floor {floor}: {title}',
+    arrived: 'Floor {floor}: {title}',
+    doorLabel: 'Floor {floor}: {title} — push it open',
+    bottom: 'This is the bottom floor',
+    top: 'Any higher and you are on the roof',
+    footMouse: 'Rest the mouse on the door to open it; ← → change floors too.',
+    footTouch: 'Swipe the door to change floors; tap once to peek, again to go in.',
     magicRoom: {
       title: 'The Magic Room',
       desc: 'The witch\'s own 3D loft — flowers, a guqin and a napping cat live here.',
@@ -283,6 +295,11 @@ export const en = {
     towerStudy: {
       title: 'The Tower Study',
       desc: 'A two-storey tower above the clouds: the study upstairs, the witch\'s bedroom below, 18 tiny discoveries hidden inside.',
+    },
+    oracleInn: {
+      title: 'Oracle Inn',
+      floor: 'Oracle Inn',
+      desc: 'A pop-up book of fortune-telling rooms: draw a tarot card in the Starry Tent, or cast moon blocks and draw a fortune slip at the Eastern Shrine. A playful look at folk customs, just for fun.',
     },
   },
   home: {
