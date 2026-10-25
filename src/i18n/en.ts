@@ -254,6 +254,12 @@ export const en = {
     starlightLibrary: 'A Study of One\'s Own · Starlight Library →',
     libraryHome: 'A Study of One\'s Own',
     libraryStarlight: 'Starlight Library',
+    workbench: 'Paper Workbench',
+    workbenchTitle: 'AI Supply Chain Research Workbench',
+    workbenchDesc: "The lab's resident project: a weekly multi-model radar, six research reports and spin-off apps — bilingual, refreshed automatically every week.",
+    workbenchChip: '6 reports · 2 apps',
+    workbenchOpen: 'Open in a new window',
+    workbenchHost: 'supply-chain-lab.summercommences.com',
   },
   exhibitions: {
     heading: 'Permanent exhibitions',

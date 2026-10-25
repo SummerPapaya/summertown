@@ -50,6 +50,7 @@ import { useTown } from '@/lib/town';
 import { useLanguage, enText } from '@/lib/i18n';
 import PermanentExhibitions from '@/components/ExhibitionGrid';
 import FrontDoors from '@/components/RoomDoors';
+import WorkbenchEntry from '@/components/WorkbenchEntry';
 
 const FACT_ICONS: Record<string, LucideIcon> = {
   clock: Clock,
@@ -471,6 +472,10 @@ export default function DetailCard({ landmark: lm, onClose, onNext }: DetailCard
                 previews={ALBUM_PREVIEWS}
               />
             )}
+
+            {/* Paper Boat Lab — the resident supply-chain research workbench
+                (poster tile with curtain reveal; opens in a new window) */}
+            {lm.id === 'design-lab' && <WorkbenchEntry variants={item} />}
 
             {/* Magic House — the floating front door: two rooms hang side by
                 side, each behind a door-shaped tile that lifts on hover. The

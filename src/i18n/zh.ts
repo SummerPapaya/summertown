@@ -206,6 +206,12 @@ export const zh: DeepL10n<Messages> = {
     starlightLibrary: '一个人的书房 · 星空图书馆 →',
     libraryHome: '一个人的书房',
     libraryStarlight: '星空图书馆',
+    workbench: '纸上工作台',
+    workbenchTitle: 'AI 供应链研究工作台',
+    workbenchDesc: '实验室的常驻项目：多模型交叉验证的每周雷达、六份研究报告与衍生应用，中英双语，每周自动更新。',
+    workbenchChip: '6 份报告 · 2 个应用',
+    workbenchOpen: '新窗口打开',
+    workbenchHost: 'supply-chain-lab.summercommences.com',
   },
   exhibitions: {
     heading: '常设展览',
