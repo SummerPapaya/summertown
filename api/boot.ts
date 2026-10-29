@@ -144,6 +144,11 @@ app.get("*", async (c) => {
     headers.delete(stale);
   }
   headers.set("content-type", "text/html; charset=utf-8");
+  /* The OG card is rewritten per-request. If Cloudflare caches it at the edge,
+   * different edges (and WeChat's China-based crawler) can serve a stale
+   * snapshot with no OG tags — producing the "domain + URL" fallback card.
+   * Never cache the rewritten HTML so every fetch gets fresh tags. */
+  headers.set("cache-control", "no-store");
   return new Response(withCard(await index.text(), card, pathname, new URL(c.req.url).origin), {
     status: 200,
     headers,
