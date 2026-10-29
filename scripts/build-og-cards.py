@@ -5,7 +5,7 @@ Link previews (WeChat, iMessage, Slack, …) reject SVG, so the two design files
 in assets/og/ are rasterised to the PNGs that og:image actually points at:
 
     assets/og/summer-town.svg  ->  public/og/summer-town.png
-    assets/og/apple-album.svg  ->  public/og/apple-album.png
+    assets/og/apple-album.svg  ->  public/og/apple-album.jpg  (compact JPEG for WeChat)
 
 Both SVGs are self-contained: the captions are converted to outline paths and
 the Apple Cottage artwork is embedded as a data URI. That means they render
@@ -323,23 +323,37 @@ def main() -> int:
             target.write_text(svg, encoding="utf-8")
             print(f"  {target.relative_to(ROOT)}  {target.stat().st_size / 1024:.0f} KB")
 
+        # apple-album is shared to WeChat Moments, where large PNGs get their
+        # thumbnail silently dropped — ship it as a compact JPEG. The home card
+        # stays PNG. (ext, PIL-format, JPEG-quality-or-None)
+        CARD_IMAGE = {
+            "apple-album": ("jpg", "JPEG", 50),
+            "summer-town": ("png", "PNG", None),
+        }
+
         chrome = find_chrome()
         if chrome is None:
             print("  ! no Chrome found — set $CHROME to also rasterise the PNGs")
             return 0
 
         for name in cards:
+            ext, fmt, quality = CARD_IMAGE.get(name, ("png", "PNG", None))
             svg = (SVG_DIR / f"{name}.svg").resolve()
-            png = PUBLIC / "og" / f"{name}.png"
+            out = PUBLIC / "og" / f"{name}.{ext}"
             with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as handle:
                 raw = Path(handle.name)
             try:
                 rasterise(chrome, svg, raw)
-                shutil.move(str(raw), png)
-                optimise(png)
+                if fmt == "JPEG":
+                    Image.open(raw).convert("RGB").save(
+                        out, "JPEG", quality=quality, optimize=True, progressive=True
+                    )
+                else:
+                    shutil.move(str(raw), out)
+                    optimise(out)
             finally:
                 raw.unlink(missing_ok=True)
-            print(f"  {png.relative_to(ROOT)}  {png.stat().st_size / 1024:.0f} KB")
+            print(f"  {out.relative_to(ROOT)}  {out.stat().st_size / 1024:.0f} KB")
 
     return 0
 

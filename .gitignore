@@ -15,6 +15,9 @@ dist
 # Note: db/migrations/*.sql are kept in git (one-shot DDL the Worker needs)
 # TypeScript cache
 *.tsbuildinfo
+# Python cache (build-og-cards.py)
+__pycache__/
+*.pyc
 # Build outputs
 dist/
 build/

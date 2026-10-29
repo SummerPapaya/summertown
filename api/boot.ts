@@ -62,7 +62,7 @@ const LINK_CARDS: Record<string, LinkCard> = {
   "/apple-album": {
     title: "An Apple A Day - 苹果相册",
     description: "一天一颗小苹果，来自夏天镇的果园 · Daily apple photos from Summer Town.",
-    image: "/og/apple-album.png",
+    image: "/og/apple-album.jpg",
     imageAlt: "An Apple A Day — a polaroid of the Apple Cottage",
   },
 };
@@ -84,6 +84,9 @@ function withCard(html: string, card: LinkCard, pathname: string, origin: string
     "og:description": escapeAttr(card.description),
     "og:image": escapeAttr(new URL(card.image, origin).toString()),
     "og:image:alt": escapeAttr(card.imageAlt),
+    /* apple-album ships as a compact JPEG (WeChat Moments drops thumbnails
+     * for large PNGs), so its type must not inherit the shell's image/png. */
+    "og:image:type": "image/jpeg",
     "og:url": escapeAttr(new URL(pathname, origin).toString()),
     "twitter:title": title,
     "twitter:description": escapeAttr(card.description),
